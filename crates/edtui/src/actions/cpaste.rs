@@ -40,7 +40,7 @@ mod tests {
     use super::*;
     use crate::{actions::Undo, clipboard::InternalClipboard, state::selection::Selection, Index2, Lines};
     fn test_state() -> EditorState {
-        let mut state = EditorState::new(Lines::from("Hello World!\n\n123."));
+        let mut state = EditorState::new(Lines::from("Hello World!\n\n123."), "txt");
         state.set_clipboard(InternalClipboard::default());
         state
     }

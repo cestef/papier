@@ -288,7 +288,7 @@ mod tests {
     use super::*;
     use crate::{Index2, Lines};
     fn test_state() -> EditorState {
-        EditorState::new(Lines::from("Hello World!\n\n123."))
+        EditorState::new(Lines::from("Hello World!\n\n123."), "txt")
     }
 
     #[test]
