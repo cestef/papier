@@ -33,10 +33,7 @@ impl SearchState {
     /// Triggers a search based on the current pattern in the provided text.
     pub(crate) fn trigger_search(&mut self, lines: &Lines) {
         let pattern: Vec<char> = self.pattern.chars().collect();
-        self.matches = lines
-            .match_indices(&pattern)
-            .map(|(_, index)| index)
-            .collect();
+        self.matches = lines.match_indices(&pattern).map(|(_, index)| index).collect();
     }
 
     /// Appends a character to the search pattern.
@@ -61,18 +58,14 @@ impl SearchState {
             Some(index) => {
                 self.selected_index = Some(0);
                 Some(index)
-            }
+            },
             None => None,
         }
     }
 
     pub(crate) fn find_next(&mut self) -> Option<&Index2> {
         if let Some(selected) = self.selected_index {
-            let new_selected = if selected + 1 >= self.matches.len() {
-                0
-            } else {
-                selected + 1
-            };
+            let new_selected = if selected + 1 >= self.matches.len() { 0 } else { selected + 1 };
             self.selected_index = Some(new_selected);
             return self.matches.get(new_selected);
         }
@@ -82,11 +75,7 @@ impl SearchState {
     /// Finds and returns the previous matched index before the selected index.
     pub(crate) fn find_previous(&mut self) -> Option<&Index2> {
         if let Some(selected) = self.selected_index {
-            let new_selected = if selected == 0 {
-                self.matches.len().saturating_sub(0)
-            } else {
-                selected - 1
-            };
+            let new_selected = if selected == 0 { self.matches.len().saturating_sub(0) } else { selected - 1 };
             self.selected_index = Some(new_selected);
             return self.matches.get(new_selected);
         }

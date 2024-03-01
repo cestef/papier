@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+
 use ratatui::{
     style::{Color, Style},
     widgets::Block,
 };
 
-use super::StatusLine;
+use super::{explorer::Explorer, StatusLine};
 
 /// The theme data of the Editor.
 pub struct EditorTheme<'a> {
@@ -21,6 +23,43 @@ pub struct EditorTheme<'a> {
     pub status_line: Option<StatusLine>,
     /// The text style for the line numbers
     pub line_numbers_style: Option<Style>,
+    /// The file explorer
+    pub explorer: Option<Explorer>,
+    /// Highlighting token to color mapping
+    pub highlighting: Highlighting,
+}
+
+pub struct Highlighting(HashMap<String, Color>);
+impl Highlighting {
+    pub fn get(&self, name: &str) -> Option<Color> {
+        self.0.get(name).cloned()
+    }
+}
+impl Default for Highlighting {
+    fn default() -> Self {
+        Self(HashMap::from([
+            ("string".to_string(), Color::Rgb(54, 161, 102)),
+            ("comment".to_string(), Color::Rgb(108, 107, 90)),
+            ("digit".to_string(), Color::Rgb(157, 108, 124)),
+            ("keyword".to_string(), Color::Rgb(91, 157, 72)),
+            ("attribute".to_string(), Color::Rgb(95, 145, 130)),
+            ("character".to_string(), Color::Rgb(125, 151, 38)),
+            ("type".to_string(), Color::Rgb(165, 152, 13)),
+            ("function".to_string(), Color::Rgb(174, 115, 19)),
+            ("header".to_string(), Color::Rgb(174, 115, 19)),
+            ("macro".to_string(), Color::Rgb(157, 108, 124)),
+            ("namespace".to_string(), Color::Rgb(125, 151, 38)),
+            ("struct".to_string(), Color::Rgb(125, 151, 38)),
+            ("operator".to_string(), Color::Rgb(95, 145, 130)),
+            ("boolean".to_string(), Color::Rgb(54, 161, 102)),
+            ("reference".to_string(), Color::Rgb(91, 157, 72)),
+            ("tag".to_string(), Color::Rgb(95, 145, 130)),
+            ("heading".to_string(), Color::Rgb(174, 115, 19)),
+            ("link".to_string(), Color::Rgb(157, 108, 124)),
+            ("key".to_string(), Color::Rgb(157, 108, 124)),
+            ("table".to_string(), Color::Rgb(157, 108, 124)),
+        ]))
+    }
 }
 
 impl Default for EditorTheme<'_> {
@@ -36,6 +75,8 @@ impl Default for EditorTheme<'_> {
             selection_style: Style::default().bg(YELLOW).fg(DARK_BLUE),
             status_line: Some(StatusLine::default()),
             line_numbers_style: None,
+            explorer: None,
+            highlighting: Highlighting::default(),
         }
     }
 }
@@ -100,6 +141,22 @@ impl<'a> EditorTheme<'a> {
     #[must_use]
     pub fn status_line(mut self, status_line: StatusLine) -> Self {
         self.status_line = Some(status_line);
+        self
+    }
+
+    /// This method allows you to customize the style of the file explorer
+    /// of the Editor. See [`Explorer`] on how to modify its appearance.
+    /// Use `hide_explorer` to hide the file explorer.
+    #[must_use]
+    pub fn explorer(mut self, explorer: Explorer) -> Self {
+        self.explorer = Some(explorer);
+        self
+    }
+
+    /// Hides the file explorer.
+    #[must_use]
+    pub fn hide_explorer(mut self) -> Self {
+        self.explorer = None;
         self
     }
 

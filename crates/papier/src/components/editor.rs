@@ -19,7 +19,7 @@ use edtui::{
     actions::Execute, state::command::Command, EditorMode, EditorState, EditorTheme, EditorView, Index2, Input, Lines,
     StatusLine,
 };
-use ratatui::{prelude::*, widgets::*};
+use ratatui::{prelude::*, style::palette::tailwind::PURPLE, widgets::*};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedSender;
 // use tui_textarea::{CursorMove, Input, Key, Scrolling, TextArea};
@@ -38,19 +38,19 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new() -> Self {
+    pub fn new(file: Option<PathBuf>) -> Self {
         let config = Config::default();
-        let buffer = Buffer::new(None, config.keybindings.clone(), None).unwrap();
         let mut buffers = HashMap::new();
-        buffers.insert("".to_string(), buffer);
-        Self { command_tx: None, config, buffers, current_buffer: Some("".to_string()), message: None }
-    }
-
-    pub async fn open(&mut self, path: PathBuf) -> Result<()> {
-        let buffer = Buffer::from_path(path.clone(), self.config.keybindings.clone(), self.command_tx.clone())?;
-        self.buffers.insert(path.clone().to_string_lossy().to_string(), buffer);
-        self.current_buffer = Some(path.to_string_lossy().to_string());
-        Ok(())
+        let current_buffer = if let Some(ref f) = file {
+            let buffer = Buffer::from_path(f.clone(), config.keybindings.clone(), None).unwrap();
+            buffers.insert(f.to_string_lossy().to_string(), buffer);
+            Some(f.to_string_lossy().to_string())
+        } else {
+            let buffer = Buffer::new(None, config.keybindings.clone(), None).unwrap();
+            buffers.insert("".to_string(), buffer);
+            Some("".to_string())
+        };
+        Self { command_tx: None, config, buffers, current_buffer, message: None }
     }
 
     pub fn current_buffer(&mut self) -> Option<&mut Buffer> {
@@ -70,14 +70,16 @@ impl Buffer {
         let file = fs::File::open(&path)?;
         let reader = io::BufReader::new(file);
         let lines: &str = &reader.lines().map_while(Result::ok).collect::<Vec<String>>().join("\n");
-        let state = EditorState::new(Lines::from(lines));
+        log::debug!("Read file: {}", lines);
+        let state = EditorState::new(Lines::from(lines), path.to_string_lossy().split('.').last().unwrap_or_default());
 
         Ok(Self { path: Some(path), modified: false, state, input: keybindings.into() })
     }
 
     fn new(path: Option<PathBuf>, keybindings: KeyBindings, tx: Option<UnboundedSender<Action>>) -> io::Result<Self> {
-        let state = EditorState::new(Lines::from(
-            "papier is a light-weight vim inspired TUI editor using the RataTUI ecosystem.
+        let state = EditorState::new(
+            Lines::from(
+                "papier is a light-weight vim inspired TUI editor using the RataTUI ecosystem.
 
 Navigate right (l), left (h), up (k) and down (j), using vim motions.
     
@@ -92,25 +94,28 @@ Built-in search using the '/' command.
 This editor is under active development.
 Don't hesitate to open issues or submit pull requests to contribute!
 ",
-        ));
+            ),
+            "txt",
+        );
 
         Ok(Self { path, modified: false, state, input: keybindings.into() })
     }
 
     fn init_commands(&mut self, tx: Option<UnboundedSender<Action>>) {
-        self.state.command.available_commands.push(Command::new(
+        let quit_tx = tx.clone();
+        self.state.command.available_commands.extend([Command::new(
             "quit".to_string(),
             "Quit the app".to_string(),
             Box::new(move || {
                 log::info!("Quitting the app from command");
-                if let Some(tx) = &tx {
+                if let Some(tx) = &quit_tx {
                     tx.send(Action::Quit).unwrap();
                 } else {
                     log::error!("No command tx available");
                 }
             }),
             vec!["q".to_string()],
-        ));
+        )]);
     }
 
     fn save(&mut self) -> io::Result<()> {
@@ -171,6 +176,7 @@ impl Component for Editor {
         let state = &mut current_buffer.state;
         let theme = EditorTheme::default()
             .base(EditorTheme::default().base.bold().bg(Color::Reset))
+            .selection_style(Style::default().bg(Color::LightMagenta).fg(Color::Reset))
             .status_line(
                 StatusLine::default()
                     .style_text(match state.mode {

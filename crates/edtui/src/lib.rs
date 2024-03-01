@@ -63,11 +63,7 @@
 //! - [ ] Display line numbers
 //! - [ ] Remap keybindings
 //! - [ ] Soft-wrap lines
-#![allow(
-    dead_code,
-    clippy::module_name_repetitions,
-    clippy::cast_possible_truncation
-)]
+#![allow(dead_code, clippy::module_name_repetitions, clippy::cast_possible_truncation)]
 pub mod actions;
 pub mod clipboard;
 mod debug;

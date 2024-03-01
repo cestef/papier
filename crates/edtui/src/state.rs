@@ -6,6 +6,8 @@ pub mod selection;
 mod undo;
 mod view;
 
+use synoptic::{from_extension, Highlighter};
+
 use self::command::CommandState;
 use self::search::SearchState;
 use self::view::ViewState;
@@ -43,12 +45,16 @@ pub struct EditorState {
 
     /// Clipboard for yank and paste operations.
     pub(crate) clip: Clipboard,
+
+    pub highlighter: Highlighter,
 }
 
 impl Default for EditorState {
     /// Creates a default `EditorState` with no text.
     fn default() -> Self {
-        EditorState::new(Lines::default())
+        let mut state = EditorState::new(Lines::default(), "");
+        state.highlighter = Highlighter::new(4);
+        state
     }
 }
 
@@ -63,7 +69,9 @@ impl EditorState {
     /// let state = EditorState::new(Lines::from("First line\nSecond Line"));
     /// ```
     #[must_use]
-    pub fn new(lines: Lines) -> EditorState {
+    pub fn new(lines: Lines, ext: &str) -> EditorState {
+        let mut highlighter = from_extension(ext, 4).unwrap_or(Highlighter::new(4));
+        highlighter.run(&lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>());
         EditorState {
             lines,
             cursor: Index2::new(0, 0),
@@ -75,6 +83,7 @@ impl EditorState {
             redo: Stack::new(),
             clip: Clipboard::default(),
             command: CommandState::default(),
+            highlighter,
         }
     }
 

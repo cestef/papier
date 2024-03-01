@@ -14,11 +14,7 @@ impl Selection {
 
     #[must_use]
     pub fn within(&self, pos: &Index2) -> bool {
-        let (start, end) = if self.start < self.end {
-            (&self.start, &self.end)
-        } else {
-            (&self.end, &self.start)
-        };
+        let (start, end) = if self.start < self.end { (&self.start, &self.end) } else { (&self.end, &self.start) };
         let (st_row, st_col) = (start.row, start.col);
         let (en_row, en_col) = (end.row, end.col);
 
@@ -26,9 +22,7 @@ impl Selection {
             (line, _) if line > st_row && line < en_row => true,
             (line, column) if line > st_row && line == en_row => column <= en_col,
             (line, column) if line == st_row && line < en_row => column >= st_col,
-            (line, column) if line == st_row && line == en_row => {
-                column <= en_col && column >= st_col
-            }
+            (line, column) if line == st_row && line == en_row => column <= en_col && column >= st_col,
             _ => false,
         }
     }
@@ -51,8 +45,7 @@ impl Selection {
 
     #[must_use]
     fn reverse(&self) -> bool {
-        self.start.row > self.end.row
-            || self.start.row == self.end.row && self.start.col > self.end.col
+        self.start.row > self.end.row || self.start.row == self.end.row && self.start.col > self.end.col
     }
 
     /// Extracts a selection from `Lines`.

@@ -21,10 +21,7 @@ impl ViewState {
     /// The given cursor coordinates are assumed to be in the editors absolute
     /// coordinates.
     pub(crate) fn update_offset(&mut self, size: (usize, usize), cursor: Index2) -> (usize, usize) {
-        let limit = (
-            size.0.saturating_sub(1) + self.x,
-            size.1.saturating_sub(1) + self.y,
-        );
+        let limit = (size.0.saturating_sub(1) + self.x, size.1.saturating_sub(1) + self.y);
         // scroll left
         if cursor.col < self.x {
             self.x = cursor.col;

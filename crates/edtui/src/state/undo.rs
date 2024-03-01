@@ -13,10 +13,7 @@ pub(crate) struct Stack {
 
 impl Stack {
     pub(crate) fn new() -> Self {
-        Self {
-            inner: Vec::new(),
-            max_size: 100,
-        }
+        Self { inner: Vec::new(), max_size: 100 }
     }
 
     pub(crate) fn pop(&mut self) -> Option<UndoState> {
@@ -47,19 +44,13 @@ pub(crate) struct UndoState {
 
 impl EditorState {
     pub(crate) fn capture(&mut self) {
-        let editor_state = UndoState {
-            lines: self.lines.clone(),
-            cursor: self.cursor,
-        };
+        let editor_state = UndoState { lines: self.lines.clone(), cursor: self.cursor };
         self.undo.push(editor_state);
     }
 
     pub fn undo(&mut self) {
         if let Some(prev) = self.undo.pop() {
-            let current = UndoState {
-                lines: self.lines.clone(),
-                cursor: self.cursor,
-            };
+            let current = UndoState { lines: self.lines.clone(), cursor: self.cursor };
             self.lines = prev.lines;
             self.cursor = prev.cursor;
             self.redo.push(current);
@@ -68,10 +59,7 @@ impl EditorState {
 
     pub fn redo(&mut self) {
         if let Some(prev) = self.redo.pop() {
-            let current = UndoState {
-                lines: self.lines.clone(),
-                cursor: self.cursor,
-            };
+            let current = UndoState { lines: self.lines.clone(), cursor: self.cursor };
             self.lines = prev.lines;
             self.cursor = prev.cursor;
             self.undo.push(current);

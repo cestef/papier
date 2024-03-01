@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, path::PathBuf};
 
 use color_eyre::eyre::Result;
 use crossterm::event::KeyEvent;
@@ -25,8 +25,8 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
-        let editor = Editor::new();
+    pub fn new(tick_rate: f64, frame_rate: f64, file: Option<PathBuf>) -> Result<Self> {
+        let editor = Editor::new(file);
         let fps = FpsCounter::default();
         let config = Config::new()?;
         Ok(Self {

@@ -568,6 +568,7 @@ dependencies = [
  "enum_dispatch",
  "ratatui",
  "serde",
+ "synoptic",
  "tokio",
 ]
 
@@ -848,6 +849,12 @@ dependencies = [
  "toml",
  "uuid",
 ]
+
+[[package]]
+name = "if_chain"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb56e1aa765b4b4f3aadfab769793b7087bb03a4ea4920644a6d238e2df5b9ed"
 
 [[package]]
 name = "image"
@@ -1656,6 +1663,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "synoptic"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e55d805771c7d089b5370a289d1faab937b1fa1b84e9589421dd6ee7096d3286"
+dependencies = [
+ "if_chain",
+ "regex",
+ "unicode-width",
 ]
 
 [[package]]

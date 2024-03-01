@@ -1,8 +1,10 @@
 //! The editors state
+pub mod explorer;
 pub mod status_line;
 pub mod theme;
 use ratatui::prelude::*;
 pub use status_line::StatusLine;
+use synoptic::{trim, TokOpt};
 
 use self::theme::EditorTheme;
 use crate::{helper::max_col, state::EditorState, EditorMode, Index2};
@@ -37,6 +39,9 @@ impl<'a, 'b> EditorView<'a, 'b> {
     #[must_use]
     pub fn get_state_mut(&'a mut self) -> &'a mut EditorState {
         self.state
+    }
+    fn highlight_colour(&self, name: &str) -> Color {
+        self.theme.highlighting.get(name).unwrap_or(Color::Reset)
     }
 }
 
@@ -75,7 +80,7 @@ impl Widget for EditorView<'_, '_> {
         // cursor is clamped to the maximum line length.
         let cursor = displayed_cursor(self.state);
 
-        // Update the view offset. Requuires the screen size and the position
+        // Update the view offset. Requires the screen size and the position
         // of the cursor. Updates the view offset only if the cursor is out
         // side of the view port. The state is stored in the `ViewOffset`.
         let size = (width, height);
@@ -91,23 +96,52 @@ impl Widget for EditorView<'_, '_> {
                 let line_number_x = side.right() - line_number.len() as u16;
                 buf.get_mut(line_number_x, y).set_symbol(&line_number).set_style(line_numbers_style);
             }
-            for (j, char) in line.iter().skip(x_off).take(width).enumerate() {
-                let x = (main.left() as usize) as u16 + j as u16;
 
-                // Text
-                buf.get_mut(x, y).set_symbol(&char.to_string());
-
-                // Selection
-                if let Some(selection) = &self.state.selection {
-                    let position = Index2::new(y_off + i, x_off + j);
-                    if selection.within(&position) {
-                        buf.get_mut(x, y).set_style(self.theme.selection_style);
-                    }
+            let tokens = self.state.highlighter.line(y_off + i, &line.iter().collect());
+            let tokens = trim(&tokens, x_off);
+            let mut j = 0;
+            for token in tokens {
+                match token {
+                    TokOpt::Some(text, kind) => {
+                        let color = self.highlight_colour(&kind);
+                        for c in text.chars() {
+                            let x = (main.left() as usize) as u16 + j as u16;
+                            if let Some(selection) = &self.state.selection {
+                                let position = Index2::new(y_off + i, x_off + j);
+                                if selection.within(&position) {
+                                    buf.get_mut(x, y).set_style(self.theme.selection_style);
+                                }
+                            }
+                            if x < main.right() && y < main.bottom() {
+                                buf.get_mut(x, y).set_symbol(&c.to_string()).set_style(Style::default().fg(color));
+                                j += 1;
+                            } else {
+                                break;
+                            }
+                        }
+                    },
+                    TokOpt::None(text) => {
+                        for c in text.chars() {
+                            let x = (main.left() as usize) as u16 + j as u16;
+                            if let Some(selection) = &self.state.selection {
+                                let position = Index2::new(y_off + i, x_off + j);
+                                if selection.within(&position) {
+                                    buf.get_mut(x, y).set_style(self.theme.selection_style);
+                                }
+                            }
+                            if x < main.right() && y < main.bottom() {
+                                buf.get_mut(x, y).set_symbol(&c.to_string());
+                                j += 1;
+                            } else {
+                                break;
+                            }
+                        }
+                    },
                 }
             }
         }
 
-        // Rendering of the cursor. Cursor is not rendered in the loop below,
+        // Rendering of the cursor. Cursor is not rendered in the loop above,
         // as the cursor may be outside the text in input mode.
         let x_cursor = (main.left() as usize) + width.min(cursor.col.saturating_sub(x_off));
         let y_cursor = (main.top() as usize) + cursor.row.saturating_sub(y_off);

@@ -24,4 +24,7 @@ pub struct Cli {
         default_value_t = 30.0
     )]
     pub frame_rate: f64,
+
+    #[arg(value_name = "PATH", help = "Path to the file to open")]
+    pub file: Option<PathBuf>,
 }
