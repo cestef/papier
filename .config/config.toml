@@ -1,0 +1,2 @@
+[keybindings.normal]
+W = { action = "SwitchMode", payload = "insert" }
