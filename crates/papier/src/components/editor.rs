@@ -72,8 +72,17 @@ impl Buffer {
         let lines: &str = &reader.lines().map_while(Result::ok).collect::<Vec<String>>().join("\n");
         log::debug!("Read file: {}", lines);
         let state = EditorState::new(Lines::from(lines), path.to_string_lossy().split('.').last().unwrap_or_default());
-
-        Ok(Self { path: Some(path), modified: false, state, input: keybindings.into() })
+        let mut input: Input<_> = keybindings.into();
+        input.command.available_commands.extend([
+            Command::new("quit".to_string(), "Quit the app".to_string(), vec!["q".to_string()], PapierAction::Quit),
+            Command::new(
+                "save".to_string(),
+                "Save the current file".to_string(),
+                vec!["w".to_string()],
+                PapierAction::Save,
+            ),
+        ]);
+        Ok(Self { path: Some(path), modified: false, state, input })
     }
 
     fn new(path: Option<PathBuf>, keybindings: KeyBindings, tx: Option<UnboundedSender<Action>>) -> io::Result<Self> {
@@ -97,25 +106,17 @@ Don't hesitate to open issues or submit pull requests to contribute!
             ),
             "txt",
         );
-
-        Ok(Self { path, modified: false, state, input: keybindings.into() })
-    }
-
-    fn init_commands(&mut self, tx: Option<UnboundedSender<Action>>) {
-        let quit_tx = tx.clone();
-        self.state.command.available_commands.extend([Command::new(
-            "quit".to_string(),
-            "Quit the app".to_string(),
-            Box::new(move || {
-                log::info!("Quitting the app from command");
-                if let Some(tx) = &quit_tx {
-                    tx.send(Action::Quit).unwrap();
-                } else {
-                    log::error!("No command tx available");
-                }
-            }),
-            vec!["q".to_string()],
-        )]);
+        let mut input: Input<_> = keybindings.into();
+        input.command.available_commands.extend([
+            Command::new("quit".to_string(), "Quit the app".to_string(), vec!["q".to_string()], PapierAction::Quit),
+            Command::new(
+                "save".to_string(),
+                "Save the current file".to_string(),
+                vec!["w".to_string()],
+                PapierAction::Save,
+            ),
+        ]);
+        Ok(Self { path, modified: false, state, input })
     }
 
     fn save(&mut self) -> io::Result<()> {
@@ -141,13 +142,16 @@ Don't hesitate to open issues or submit pull requests to contribute!
 impl Component for Editor {
     fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
         self.command_tx = Some(tx);
-        self.buffers.values_mut().for_each(|b| b.init_commands(self.command_tx.clone()));
         Ok(())
     }
 
     fn register_config_handler(&mut self, config: Config) -> Result<()> {
         self.config = config;
-        self.buffers.values_mut().for_each(|b| b.input = self.config.keybindings.clone().into());
+        self.buffers.values_mut().for_each(|b| {
+            let mut input: Input<_> = self.config.keybindings.clone().into();
+            input.command.available_commands = b.input.command.available_commands.clone();
+            b.input = input;
+        });
         Ok(())
     }
 
@@ -155,7 +159,6 @@ impl Component for Editor {
         let current_buffer = self.current_buffer().unwrap();
         let input = &mut current_buffer.input;
         let state = &mut current_buffer.state;
-
         let maybe_custom = input.on_key(key, state);
         if let Some(custom) = maybe_custom {
             match custom.0 {
@@ -163,6 +166,10 @@ impl Component for Editor {
                     if let Some(tx) = &self.command_tx {
                         tx.send(Action::Quit)?;
                     }
+                },
+                PapierAction::Save => {
+                    log::info!("Saving the file from action");
+                    current_buffer.save()?;
                 },
             }
         }
@@ -195,18 +202,10 @@ impl Component for Editor {
                     })
                     .align_left(true),
             )
-            .cursor_style(
-                Style::default()
-                    .fg(match state.mode {
-                        edtui::EditorMode::Insert => Color::White,
-                        _ => Color::DarkGray,
-                    })
-                    .bg(match state.mode {
-                        edtui::EditorMode::Insert => Color::Reset,
-                        _ => Color::White,
-                    })
-                    .underlined(),
-            )
+            .cursor_style(match state.mode {
+                edtui::EditorMode::Insert => Style::default().underlined(),
+                _ => Style::default().bg(Color::White).fg(Color::Black),
+            })
             .line_numbers_style(Style::default().fg(Color::DarkGray).bg(Color::Reset));
 
         let editor = EditorView::new(state).theme(theme);

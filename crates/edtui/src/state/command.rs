@@ -1,30 +1,31 @@
 use jagged::Index2;
 
-#[derive(Default)]
+#[derive(Default, Clone, Debug)]
 /// Represents the state of the command mode.
-pub struct CommandState {
+pub struct CommandState<I> {
     pub(crate) start_cursor: Index2,
     pub(crate) input: String,
-    pub available_commands: Vec<Command>,
+    pub available_commands: Vec<Command<I>>,
 }
 
+#[derive(Clone, Debug)]
 /// Represents a command that can be executed in command mode.
-pub struct Command {
+pub struct Command<I> {
     pub name: String,
     pub aliases: Vec<String>,
     pub description: String,
-    pub execute: Box<dyn Fn()>,
+    pub action: I,
 }
 
-impl Default for Command {
+impl<I: Default> Default for Command<I> {
     fn default() -> Self {
-        Self { name: String::new(), description: String::new(), execute: Box::new(|| {}), aliases: Vec::new() }
+        Self { name: String::new(), description: String::new(), aliases: Vec::new(), action: I::default() }
     }
 }
 
-impl Command {
-    pub fn new(name: String, description: String, execute: Box<dyn Fn()>, aliases: Vec<String>) -> Self {
-        Self { name, description, execute, aliases }
+impl<I> Command<I> {
+    pub fn new(name: String, description: String, aliases: Vec<String>, action: I) -> Self {
+        Self { name, description, aliases, action }
     }
 
     pub fn name(&mut self, name: String) -> &mut Self {
@@ -36,9 +37,19 @@ impl Command {
         self.description = description;
         self
     }
+
+    pub fn aliases(&mut self, aliases: Vec<String>) -> &mut Self {
+        self.aliases = aliases;
+        self
+    }
+
+    pub fn action(&mut self, action: I) -> &mut Self {
+        self.action = action;
+        self
+    }
 }
 
-impl CommandState {
+impl<I> CommandState<I> {
     /// Returns the length of the current search pattern.
     pub(crate) fn command_len(&self) -> usize {
         self.input.len()
@@ -59,17 +70,7 @@ impl CommandState {
         self.input.pop();
     }
 
-    pub fn execute(&self) {
-        if let Some(command) = self
-            .available_commands
-            .iter()
-            .find(|command| command.name == self.input || command.aliases.contains(&self.input))
-        {
-            (command.execute)();
-        }
-    }
-
-    pub fn add_command(&mut self, name: String, description: String, execute: Box<dyn Fn()>, aliases: Vec<String>) {
-        self.available_commands.push(Command { name, description, execute, aliases });
+    pub fn add_command(&mut self, name: String, description: String, aliases: Vec<String>, action: I) {
+        self.available_commands.push(Command { name, description, aliases, action });
     }
 }

@@ -8,7 +8,6 @@ mod view;
 
 use synoptic::{from_extension, Highlighter};
 
-use self::command::CommandState;
 use self::search::SearchState;
 use self::view::ViewState;
 use self::{mode::EditorMode, selection::Selection, undo::Stack};
@@ -35,8 +34,6 @@ pub struct EditorState {
     /// State holding the search results in search mode.
     pub(crate) search: SearchState,
 
-    pub command: CommandState,
-
     /// Stack for undo operations.
     pub(crate) undo: Stack,
 
@@ -47,6 +44,8 @@ pub struct EditorState {
     pub(crate) clip: Clipboard,
 
     pub highlighter: Highlighter,
+
+    pub command: String,
 }
 
 impl Default for EditorState {
@@ -82,8 +81,8 @@ impl EditorState {
             undo: Stack::new(),
             redo: Stack::new(),
             clip: Clipboard::default(),
-            command: CommandState::default(),
             highlighter,
+            command: String::new(),
         }
     }
 

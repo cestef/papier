@@ -2,6 +2,8 @@
 pub mod key;
 pub mod register;
 
+use std::fmt::Debug;
+
 use crossterm::event::{KeyCode, KeyEvent};
 use serde::{Deserialize, Serialize};
 
@@ -11,28 +13,29 @@ use self::{
 };
 use crate::{
     actions::{
-        command::{AppendCharToCommand, RemoveCharFromCommand, StartCommand, StopCommand, TriggerCommand},
-        motion::MoveWordForwardEnd,
-        search::StartSearch,
-        Action, Append, AppendCharToSearch, AppendNewline, Composed, CopySelection, Custom, DeleteChar, DeleteLine,
-        DeleteSelection, Execute, FindNext, FindPrevious, InsertChar, InsertNewline, LineBreak, MoveBackward, MoveDown,
-        MoveForward, MoveToEnd, MoveToFirst, MoveToStart, MoveUp, MoveWordBackward, MoveWordForwardStart, Paste, Redo,
-        RemoveChar, RemoveCharFromSearch, SelectBetween, StopSearch, SwitchMode, TriggerSearch, Undo,
+        motion::MoveWordForwardEnd, search::StartSearch, Action, Append, AppendCharToSearch, AppendNewline, Composed,
+        CopySelection, Custom, DeleteChar, DeleteLine, DeleteSelection, Execute, FindNext, FindPrevious, InsertChar,
+        InsertNewline, LineBreak, MoveBackward, MoveDown, MoveForward, MoveToEnd, MoveToFirst, MoveToStart, MoveUp,
+        MoveWordBackward, MoveWordForwardStart, Paste, Redo, RemoveChar, RemoveCharFromSearch, SelectBetween,
+        StopSearch, SwitchMode, TriggerSearch, Undo,
     },
+    debug::log_to_file,
+    state::command::CommandState,
     EditorMode, EditorState,
 };
 
 #[derive(Clone, Debug)]
 pub struct Input<I>
 where
-    I: Clone + Execute + Serialize + for<'de> Deserialize<'de>,
+    I: Clone + Execute + Serialize + for<'de> Deserialize<'de> + Default,
 {
     pub register: Register<I>,
+    pub command: CommandState<I>,
 }
 
 impl<I> Default for Input<I>
 where
-    I: Clone + Execute + Serialize + for<'de> Deserialize<'de>,
+    I: Clone + Execute + Serialize + for<'de> Deserialize<'de> + Default,
 {
     #[allow(clippy::too_many_lines)]
     fn default() -> Self {
@@ -47,11 +50,6 @@ where
 
         // Go into visual mode
         r.insert(RegisterKey::n(vec![Key::Char('v')]), SwitchMode(EditorMode::Visual));
-
-        r.insert(RegisterKey::n(vec![Key::Char(':')]), StartCommand);
-        r.insert(RegisterKey::c(vec![Key::Esc]), StopCommand);
-        r.insert(RegisterKey::c(vec![Key::Enter]), TriggerCommand);
-        r.insert(RegisterKey::c(vec![Key::Backspace]), RemoveCharFromCommand);
 
         // Goes into search mode and starts of a new search.
         r.insert(RegisterKey::n(vec![Key::Char('/')]), StartSearch);
@@ -164,27 +162,65 @@ where
         r.insert(RegisterKey::n(vec![Key::Char('p')]), Paste);
         r.insert(RegisterKey::v(vec![Key::Char('p')]), Paste);
 
-        Self { register: r }
+        Self { register: r, command: CommandState::default() }
     }
 }
 
 impl<I> Input<I>
 where
-    I: Clone + Execute + Serialize + for<'de> Deserialize<'de>,
+    I: Clone + Execute + Serialize + for<'de> Deserialize<'de> + Default + Debug,
 {
     pub fn on_key<T>(&mut self, key: T, state: &mut EditorState) -> Option<Custom<I>>
     where
         T: Into<KeyEvent> + Copy,
     {
         let mode = state.mode;
+        /*
 
+        r.insert(RegisterKey::n(vec![Key::Char(':')]), StartCommand);
+        r.insert(RegisterKey::c(vec![Key::Esc]), StopCommand);
+        r.insert(RegisterKey::c(vec![Key::Enter]), TriggerCommand);
+        r.insert(RegisterKey::c(vec![Key::Backspace]), RemoveCharFromCommand);
+         */
         match key.into().code {
             // Always insert characters in insert mode
             KeyCode::Char(c) if mode == EditorMode::Insert => InsertChar(c).execute(state),
             // Always add characters to search in search mode
             KeyCode::Char(c) if mode == EditorMode::Search => AppendCharToSearch(c).execute(state),
-            // Always add characters to command in command mode
-            KeyCode::Char(c) if mode == EditorMode::Command => AppendCharToCommand(c).execute(state),
+
+            KeyCode::Char(':') if mode == EditorMode::Normal => {
+                self.command.clear();
+                state.command = self.command.input.clone();
+                state.mode = EditorMode::Command;
+            },
+            KeyCode::Char(c) if mode == EditorMode::Command => {
+                self.command.push_char(c);
+                log_to_file(format!("Command: {}", self.command.input));
+                state.command = self.command.input.clone();
+            },
+            KeyCode::Backspace if mode == EditorMode::Command => {
+                self.command.remove_char();
+                state.command = self.command.input.clone();
+            },
+            KeyCode::Esc if mode == EditorMode::Command => {
+                self.command.clear();
+                state.command = self.command.input.clone();
+                state.mode = EditorMode::Normal;
+            },
+            KeyCode::Enter if mode == EditorMode::Command => {
+                let commands = self.command.available_commands.clone();
+                log_to_file(format!("Commands: {:?}", commands));
+                let command =
+                    commands.iter().find(|c| c.name == self.command.input || c.aliases.contains(&self.command.input));
+                log_to_file(format!("Command: {:?}", command.clone()));
+                state.mode = EditorMode::Normal;
+                self.command.clear();
+                state.command = self.command.input.clone();
+                if let Some(command) = command {
+                    return Some(Custom(command.action.clone()));
+                }
+            },
+
             // Else lookup an action from the register
             _ => {
                 if let Some(mut action) = self.register.get(key.into(), mode) {

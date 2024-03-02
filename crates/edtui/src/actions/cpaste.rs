@@ -15,9 +15,9 @@ impl Execute for Paste {
         clamp_column(state);
         if let Some(selection) = state.selection.take() {
             delete_selection(state, &selection);
-            insert_str(&mut state.lines, &mut state.cursor, &state.clip.get_text());
+            insert_str(&mut state.lines, &mut state.cursor, &state.clip.get_text(), &mut state.highlighter);
         } else {
-            append_str(&mut state.lines, &mut state.cursor, &state.clip.get_text());
+            append_str(&mut state.lines, &mut state.cursor, &state.clip.get_text(), &mut state.highlighter);
         }
         state.mode = EditorMode::Normal;
     }

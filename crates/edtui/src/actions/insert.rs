@@ -13,7 +13,7 @@ pub struct InsertChar(pub char);
 
 impl Execute for InsertChar {
     fn execute(&mut self, state: &mut EditorState) {
-        insert_char(&mut state.lines, &mut state.cursor, self.0, false);
+        insert_char(&mut state.lines, &mut state.cursor, self.0, false, &mut state.highlighter);
     }
 }
 
@@ -24,7 +24,7 @@ pub struct LineBreak(pub usize);
 impl Execute for LineBreak {
     fn execute(&mut self, state: &mut EditorState) {
         for _ in 0..self.0 {
-            line_break(&mut state.lines, &mut state.cursor);
+            line_break(&mut state.lines, &mut state.cursor, &mut state.highlighter);
         }
     }
 }
@@ -40,6 +40,7 @@ impl Execute for AppendNewline {
         for _ in 0..self.0 {
             state.cursor.row += 1;
             state.lines.insert(RowIndex::new(state.cursor.row), vec![]);
+            state.highlighter.insert_line(state.cursor.row, &"".to_string());
         }
         SwitchMode(EditorMode::Insert).execute(state);
     }
@@ -55,6 +56,7 @@ impl Execute for InsertNewline {
         state.cursor.col = 0;
         for _ in 0..self.0 {
             state.lines.insert(RowIndex::new(state.cursor.row), vec![]);
+            state.highlighter.insert_line(state.cursor.row, &"".to_string());
         }
         SwitchMode(EditorMode::Insert).execute(state);
     }
@@ -68,7 +70,8 @@ pub struct PushLine<'a>(pub &'a str);
 impl Execute for PushLine<'_> {
     fn execute(&mut self, state: &mut EditorState) {
         let chars: Vec<char> = self.0.chars().collect();
-        state.lines.push(chars);
+        state.lines.push(chars.clone());
+        state.highlighter.append(&chars.iter().collect::<String>());
     }
 }
 

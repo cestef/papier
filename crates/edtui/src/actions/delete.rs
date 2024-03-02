@@ -1,5 +1,6 @@
 use jagged::index::RowIndex;
 use serde::{Deserialize, Serialize};
+use synoptic::Highlighter;
 
 use super::Execute;
 use crate::{
@@ -24,6 +25,9 @@ impl Execute for RemoveChar {
             }
             let _ = lines.remove(*index);
             index.col = index.col.min(lines.len_col(index.row).saturating_sub(1));
+
+            let y = index.row;
+            state.highlighter.edit(y, &lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>()[y]);
         }
     }
 }
@@ -37,12 +41,14 @@ impl Execute for DeleteChar {
     fn execute(&mut self, state: &mut EditorState) {
         state.capture();
         for _ in 0..self.0 {
-            delete_char(&mut state.lines, &mut state.cursor);
+            delete_char(&mut state.lines, &mut state.cursor, &mut state.highlighter);
+            let y = state.cursor.row;
+            state.highlighter.edit(y, &state.lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>()[y]);
         }
     }
 }
 
-fn delete_char(lines: &mut Lines, index: &mut Index2) {
+fn delete_char(lines: &mut Lines, index: &mut Index2, highlighter: &mut Highlighter) {
     fn move_left(lines: &Lines, index: &mut Index2) {
         if index.col > 0 {
             index.col -= 1;
@@ -51,18 +57,23 @@ fn delete_char(lines: &mut Lines, index: &mut Index2) {
             index.col = lines.len_col(index.row);
         }
     }
-
+    // Do nothing if the cursor is at the beginning of the file
     if index.col == 0 && index.row == 0 {
         return;
     }
 
+    // If the cursor is at the beginning of the line, merge the current line with the previous one
     if index.col == 0 {
         let mut rest = lines.split_off(*index);
         move_left(lines, index);
         lines.merge(&mut rest);
+        highlighter.edit(index.row, &lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>()[index.row]);
+        highlighter.remove_line(index.row + 1);
     } else {
+        // Otherwise, just remove the character to the left
         move_left(lines, index);
         let _ = lines.remove(*index);
+        highlighter.edit(index.row, &lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>()[index.row]);
     }
 }
 
@@ -80,6 +91,8 @@ impl Execute for DeleteLine {
             state.lines.remove(RowIndex::new(state.cursor.row));
             state.cursor.col = 0;
             state.cursor.row = state.cursor.row.min(state.lines.len().saturating_sub(1));
+
+            state.highlighter.remove_line(state.cursor.row);
         }
     }
 }
@@ -108,7 +121,7 @@ pub(crate) fn delete_selection(state: &mut EditorState, selection: &Selection) {
         state.cursor.col += 1;
     }
     while state.cursor != selection.start() {
-        delete_char(&mut state.lines, &mut state.cursor);
+        delete_char(&mut state.lines, &mut state.cursor, &mut state.highlighter);
     }
 }
 

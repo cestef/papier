@@ -25,6 +25,7 @@ use crate::{
 pub enum PapierAction {
     #[default]
     Quit,
+    Save,
 }
 
 impl Execute for PapierAction {

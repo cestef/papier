@@ -1,16 +1,20 @@
 use jagged::index::RowIndex;
+use synoptic::Highlighter;
 
 use crate::{state::selection::Selection, EditorMode, EditorState, Index2, Lines};
 
 /// Inserts a character into the lines data at the given `index`.
-pub fn insert_char(lines: &mut Lines, index: &mut Index2, ch: char, skip_move: bool) {
+pub fn insert_char(lines: &mut Lines, index: &mut Index2, ch: char, skip_move: bool, highlighter: &mut Highlighter) {
     if lines.is_empty() {
         lines.push(Vec::new());
+        highlighter.insert_line(0, &"".to_string());
     }
     if ch == '\n' {
-        line_break(lines, index);
+        line_break(lines, index, highlighter);
     } else {
         lines.insert(*index, ch);
+        let y = index.row;
+        highlighter.edit(y, &lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>()[y]);
         if !skip_move {
             index.col += 1;
         }
@@ -18,32 +22,40 @@ pub fn insert_char(lines: &mut Lines, index: &mut Index2, ch: char, skip_move: b
 }
 
 /// Inserts a string into the lines data at the given `index`.
-pub fn insert_str(lines: &mut Lines, index: &mut Index2, text: &str) {
+pub fn insert_str(lines: &mut Lines, index: &mut Index2, text: &str, highlighter: &mut Highlighter) {
     for (i, ch) in text.chars().enumerate() {
         let is_last = i == text.len().saturating_sub(1);
-        insert_char(lines, index, ch, is_last);
+        insert_char(lines, index, ch, is_last, highlighter);
     }
 }
 
 /// Appends a string into the lines data next to a given `index`.
-pub fn append_str(lines: &mut Lines, index: &mut Index2, text: &str) {
+pub fn append_str(lines: &mut Lines, index: &mut Index2, text: &str, highlighter: &mut Highlighter) {
     if !lines.is_empty() && lines.len_col(index.row) > 0 {
         index.col += 1;
     }
     for ch in text.chars() {
-        insert_char(lines, index, ch, false);
+        insert_char(lines, index, ch, false, highlighter);
     }
     index.col = index.col.saturating_sub(1);
 }
 
 /// Inserts a line break at a given index. Forces a splitting of lines if
 /// the index is in the middle of a line.
-pub(crate) fn line_break(lines: &mut Lines, index: &mut Index2) {
+pub(crate) fn line_break(lines: &mut Lines, index: &mut Index2, highlighter: &mut Highlighter) {
     if index.col == 0 {
         lines.insert(RowIndex::new(index.row), vec![]);
+        highlighter.insert_line(index.row, &"".to_string());
     } else {
+        // Split the line at the cursor position
         let mut rest = lines.split_off(*index);
+        // Create a new line with the rest of the characters
         lines.append(&mut rest);
+        // Notify highlighter that the current line has been edited and that the next line has been inserted
+        let y = index.row;
+        let lines = lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>();
+        highlighter.insert_line(y + 1, &lines[y + 1]);
+        highlighter.edit(y, &lines[y]);
     }
     index.row += 1;
     index.col = 0;
@@ -158,7 +170,7 @@ mod tests {
         let mut lines = test_lines();
         let mut index = Index2::new(0, 5);
 
-        insert_str(&mut lines, &mut index, ",\n");
+        insert_str(&mut lines, &mut index, ",\n", &mut Highlighter::new(4));
         assert_eq!(index, Index2::new(1, 0));
         assert_eq!(lines, Lines::from("Hello,\n World!\n\n123."));
     }
@@ -168,13 +180,13 @@ mod tests {
         let mut lines = test_lines();
         let mut index = Index2::new(0, 5);
 
-        append_str(&mut lines, &mut index, ",\n");
+        append_str(&mut lines, &mut index, ",\n", &mut Highlighter::new(4));
         assert_eq!(index, Index2::new(1, 0));
         assert_eq!(lines, Lines::from("Hello ,\nWorld!\n\n123."));
 
         let mut lines = test_lines();
         let mut index = Index2::new(1, 0);
-        append_str(&mut lines, &mut index, "abc");
+        append_str(&mut lines, &mut index, "abc", &mut Highlighter::new(4));
         assert_eq!(index, Index2::new(1, 2));
         assert_eq!(lines, Lines::from("Hello World!\nabc\n123."));
     }

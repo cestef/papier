@@ -1,5 +1,4 @@
 //! Editor actions such as move, insert, delete
-pub mod command;
 pub mod cpaste;
 pub mod delete;
 pub mod insert;
@@ -10,22 +9,21 @@ pub mod select;
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 
-use self::{
-    command::{AppendCharToCommand, RemoveCharFromCommand, StartCommand, StopCommand, TriggerCommand},
-    motion::MoveWordForwardEnd,
-    search::StartSearch,
-};
 pub use self::{
     cpaste::{CopySelection, Paste},
     delete::{DeleteChar, DeleteLine, DeleteSelection, RemoveChar},
     insert::{AppendNewline, InsertChar, InsertNewline, LineBreak},
+    motion::MoveWordForwardEnd,
     motion::{
         MoveBackward, MoveDown, MoveForward, MoveToEnd, MoveToFirst, MoveToStart, MoveUp, MoveWordBackward,
         MoveWordForwardStart,
     },
-    search::{AppendCharToSearch, FindNext, FindPrevious, RemoveCharFromSearch, StopSearch, TriggerSearch},
+    search::{
+        AppendCharToSearch, FindNext, FindPrevious, RemoveCharFromSearch, StartSearch, StopSearch, TriggerSearch,
+    },
     select::SelectBetween,
 };
+
 use crate::{helper::clamp_column, state::selection::Selection, EditorMode, EditorState};
 
 #[enum_dispatch(Execute, Clone, Serialize, Deserialize)]
@@ -65,11 +63,6 @@ pub enum Action<I: Clone + Execute> {
     FindPrevious(FindPrevious),
     AppendCharToSearch(AppendCharToSearch),
     RemoveCharFromSearch(RemoveCharFromSearch),
-    StartCommand(StartCommand),
-    StopCommand(StopCommand),
-    TriggerCommand(TriggerCommand),
-    AppendCharToCommand(AppendCharToCommand),
-    RemoveCharFromCommand(RemoveCharFromCommand),
     Custom(Custom<I>),
 }
 
@@ -173,6 +166,9 @@ where
 mod tests {
     use super::*;
     use crate::{clipboard::InternalClipboard, Index2, Lines};
+    enum TestAction {
+        Test,
+    }
     fn test_state() -> EditorState {
         let mut state = EditorState::new(Lines::from("Hello World!\n\n123."), "txt");
         state.set_clipboard(InternalClipboard::default());

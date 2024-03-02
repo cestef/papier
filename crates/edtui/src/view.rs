@@ -158,11 +158,7 @@ impl Widget for EditorView<'_, '_> {
                 } else {
                     None
                 })
-                .command(if self.state.mode == EditorMode::Command {
-                    Some(self.state.command.input.clone())
-                } else {
-                    None
-                })
+                .command(if self.state.mode == EditorMode::Command { Some(self.state.command.clone()) } else { None })
                 .render(status, buf);
         }
     }
