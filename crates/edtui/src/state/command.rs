@@ -14,17 +14,17 @@ pub struct Command<I> {
     pub name: String,
     pub aliases: Vec<String>,
     pub description: String,
-    pub action: I,
+    pub action: fn(String) -> I,
 }
 
 impl<I: Default> Default for Command<I> {
     fn default() -> Self {
-        Self { name: String::new(), description: String::new(), aliases: Vec::new(), action: I::default() }
+        Self { name: String::new(), description: String::new(), aliases: Vec::new(), action: |_| I::default() }
     }
 }
 
 impl<I> Command<I> {
-    pub fn new(name: String, description: String, aliases: Vec<String>, action: I) -> Self {
+    pub fn new(name: String, description: String, aliases: Vec<String>, action: fn(String) -> I) -> Self {
         Self { name, description, aliases, action }
     }
 
@@ -40,11 +40,6 @@ impl<I> Command<I> {
 
     pub fn aliases(&mut self, aliases: Vec<String>) -> &mut Self {
         self.aliases = aliases;
-        self
-    }
-
-    pub fn action(&mut self, action: I) -> &mut Self {
-        self.action = action;
         self
     }
 }
@@ -70,7 +65,7 @@ impl<I> CommandState<I> {
         self.input.pop();
     }
 
-    pub fn add_command(&mut self, name: String, description: String, aliases: Vec<String>, action: I) {
+    pub fn add_command(&mut self, name: String, description: String, aliases: Vec<String>, action: fn(String) -> I) {
         self.available_commands.push(Command { name, description, aliases, action });
     }
 }

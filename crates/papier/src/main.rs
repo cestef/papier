@@ -26,6 +26,7 @@ pub enum PapierAction {
     #[default]
     Quit,
     Save,
+    SaveAs(String),
 }
 
 impl Execute for PapierAction {

@@ -217,7 +217,7 @@ where
                 self.command.clear();
                 state.command = self.command.input.clone();
                 if let Some(command) = command {
-                    return Some(Custom(command.action.clone()));
+                    return Some(Custom((command.action)(self.command.input.clone())));
                 }
             },
 

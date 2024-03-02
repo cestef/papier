@@ -73,16 +73,23 @@ impl Buffer {
         log::debug!("Read file: {}", lines);
         let state = EditorState::new(Lines::from(lines), path.to_string_lossy().split('.').last().unwrap_or_default());
         let mut input: Input<_> = keybindings.into();
+        Self::init_commands(&mut input);
+        Ok(Self { path: Some(path), modified: false, state, input })
+    }
+
+    fn init_commands(input: &mut Input<PapierAction>) {
         input.command.available_commands.extend([
-            Command::new("quit".to_string(), "Quit the app".to_string(), vec!["q".to_string()], PapierAction::Quit),
+            Command::new("quit".to_string(), "Quit the app".to_string(), vec!["q".to_string()], |_| PapierAction::Quit),
+            Command::new("save".to_string(), "Save the current file".to_string(), vec!["w".to_string()], |_| {
+                PapierAction::Save
+            }),
             Command::new(
-                "save".to_string(),
-                "Save the current file".to_string(),
-                vec!["w".to_string()],
-                PapierAction::Save,
+                "save_as".to_string(),
+                "Save the current file as a new file".to_string(),
+                vec!["wq".to_string()],
+                PapierAction::SaveAs,
             ),
         ]);
-        Ok(Self { path: Some(path), modified: false, state, input })
     }
 
     fn new(path: Option<PathBuf>, keybindings: KeyBindings, tx: Option<UnboundedSender<Action>>) -> io::Result<Self> {
@@ -107,15 +114,7 @@ Don't hesitate to open issues or submit pull requests to contribute!
             "txt",
         );
         let mut input: Input<_> = keybindings.into();
-        input.command.available_commands.extend([
-            Command::new("quit".to_string(), "Quit the app".to_string(), vec!["q".to_string()], PapierAction::Quit),
-            Command::new(
-                "save".to_string(),
-                "Save the current file".to_string(),
-                vec!["w".to_string()],
-                PapierAction::Save,
-            ),
-        ]);
+        Self::init_commands(&mut input);
         Ok(Self { path, modified: false, state, input })
     }
 
@@ -135,6 +134,21 @@ Don't hesitate to open issues or submit pull requests to contribute!
             }
             self.modified = false;
         }
+        Ok(())
+    }
+
+    fn save_as(&mut self, path: PathBuf) -> io::Result<()> {
+        let mut f = io::BufWriter::new(fs::File::create(&path)?);
+        for (maybe_char, Index2 { col, row }) in self.state.lines.iter() {
+            if let Some(c) = maybe_char {
+                write!(f, "{}", c)?;
+            }
+            if row < self.state.lines.len() - 1 {
+                writeln!(f)?;
+            }
+        }
+        self.modified = false;
+        self.path = Some(path);
         Ok(())
     }
 }
@@ -160,6 +174,7 @@ impl Component for Editor {
         let input = &mut current_buffer.input;
         let state = &mut current_buffer.state;
         let maybe_custom = input.on_key(key, state);
+
         if let Some(custom) = maybe_custom {
             match custom.0 {
                 PapierAction::Quit => {
@@ -168,8 +183,16 @@ impl Component for Editor {
                     }
                 },
                 PapierAction::Save => {
-                    log::info!("Saving the file from action");
                     current_buffer.save()?;
+                },
+                PapierAction::SaveAs(i) => {
+                    let args = i.split_whitespace().skip(1).collect::<Vec<&str>>();
+                    if args.len() != 1 {
+                        self.message = Some("Invalid arguments".to_string());
+                    } else {
+                        let path = PathBuf::from(args[0]);
+                        current_buffer.save_as(path)?;
+                    }
                 },
             }
         }
