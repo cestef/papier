@@ -20,11 +20,13 @@ impl Execute for RemoveChar {
         for _ in 0..self.0 {
             let lines = &mut state.lines;
             let index = &mut state.cursor;
-            if lines.len_col(index.row) == 0 {
+            if lines.len_col(index.row) == Some(0) {
                 return;
             }
             let _ = lines.remove(*index);
-            index.col = index.col.min(lines.len_col(index.row).saturating_sub(1));
+            if let Some(len) = lines.len_col(index.row) {
+                index.col = index.col.min(len.saturating_sub(1));
+            }
 
             let y = index.row;
             state.highlighter.edit(y, &lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>()[y]);
@@ -54,7 +56,9 @@ fn delete_char(lines: &mut Lines, index: &mut Index2, highlighter: &mut Highligh
             index.col -= 1;
         } else if index.row > 0 {
             index.row -= 1;
-            index.col = lines.len_col(index.row);
+            if let Some(len) = lines.len_col(index.row) {
+                index.col = len;
+            }
         }
     }
     // Do nothing if the cursor is at the beginning of the file
@@ -117,8 +121,9 @@ impl Execute for DeleteSelection {
 
 pub(crate) fn delete_selection(state: &mut EditorState, selection: &Selection) {
     state.cursor = selection.end();
-    if state.lines.len_col(state.cursor.row) > 0 {
-        state.cursor.col += 1;
+
+    if let Some(len) = state.lines.len_col(state.cursor.row) {
+        state.cursor.col = state.cursor.col.min(len);
     }
     while state.cursor != selection.start() {
         delete_char(&mut state.lines, &mut state.cursor, &mut state.highlighter);

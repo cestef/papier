@@ -31,7 +31,7 @@ pub fn insert_str(lines: &mut Lines, index: &mut Index2, text: &str, highlighter
 
 /// Appends a string into the lines data next to a given `index`.
 pub fn append_str(lines: &mut Lines, index: &mut Index2, text: &str, highlighter: &mut Highlighter) {
-    if !lines.is_empty() && lines.len_col(index.row) > 0 {
+    if !lines.is_empty() && lines.len_col(index.row) > Some(0) {
         index.col += 1;
     }
     for ch in text.chars() {
@@ -68,8 +68,8 @@ pub(crate) fn max_col(lines: &Lines, index: &Index2, mode: EditorMode) -> usize 
         return 0;
     }
     match mode {
-        EditorMode::Normal | EditorMode::Visual => lines.len_col(index.row).saturating_sub(1),
-        _ => lines.len_col(index.row),
+        EditorMode::Normal | EditorMode::Visual => lines.len_col(index.row).unwrap_or_default().saturating_sub(1),
+        _ => lines.len_col(index.row).unwrap_or_default(),
     }
 }
 
@@ -126,7 +126,7 @@ pub(crate) fn skip_whitespace_rev(lines: &Lines, index: &mut Index2) {
 /// Get the number of columns in the current line.
 #[must_use]
 pub(crate) fn len_col(state: &EditorState) -> usize {
-    state.lines.len_col(state.cursor.row)
+    state.lines.len_col(state.cursor.row).unwrap_or_default()
 }
 
 #[cfg(test)]

@@ -187,7 +187,9 @@ impl Execute for MoveWordBackward {
 
             if index.col == 0 {
                 index.row = index.row.saturating_sub(1);
-                state.cursor.col = lines.len_col(index.row).saturating_sub(1);
+                if let Some(len) = lines.len_col(index.row) {
+                    state.cursor.col = len.saturating_sub(1);
+                }
                 state.cursor.row = index.row;
                 return;
             }
