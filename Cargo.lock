@@ -559,7 +559,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "edtui"
+name = "edtui-cstef"
 version = "0.3.2"
 dependencies = [
  "arboard",
@@ -1169,7 +1169,7 @@ dependencies = [
  "crossterm",
  "derive_deref",
  "directories",
- "edtui",
+ "edtui-cstef",
  "futures",
  "human-panic",
  "json5",
