@@ -1,5 +1,5 @@
 [package]
-name = "edtui-cstef"
+name = "edtui-papier"
 version = "0.3.2"
 edition = "2021"
 repository = "https://github.com/preiter93/edtui"
