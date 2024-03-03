@@ -2,6 +2,8 @@
 pub mod explorer;
 pub mod status_line;
 pub mod theme;
+use std::time::Duration;
+
 use ratatui::prelude::*;
 pub use status_line::StatusLine;
 use synoptic::{trim, TokOpt};
@@ -9,16 +11,31 @@ use synoptic::{trim, TokOpt};
 use self::theme::EditorTheme;
 use crate::{helper::max_col, state::EditorState, EditorMode, Index2};
 
+#[derive(Debug, Clone, Default)]
+pub struct EditorMessage {
+    message: String,
+    duration: Duration,
+}
+
+impl EditorMessage {
+    /// Creates a new instance of [`EditorMessage`].
+    #[must_use]
+    pub fn new(message: String, duration: Duration) -> Self {
+        Self { message, duration }
+    }
+}
+
 pub struct EditorView<'a, 'b> {
     pub(crate) state: &'a mut EditorState,
     pub(crate) theme: EditorTheme<'b>,
+    pub(crate) message: Option<EditorMessage>,
 }
 
 impl<'a, 'b> EditorView<'a, 'b> {
     /// Creates a new instance of [`EditorView`].
     #[must_use]
     pub fn new(state: &'a mut EditorState) -> Self {
-        Self { state, theme: EditorTheme::default() }
+        Self { state, theme: EditorTheme::default(), message: None }
     }
 
     /// Set the theme for the [`EditorView`]
@@ -26,6 +43,16 @@ impl<'a, 'b> EditorView<'a, 'b> {
     #[must_use]
     pub fn theme(mut self, theme: EditorTheme<'b>) -> Self {
         self.theme = theme;
+        self
+    }
+
+    /// Set the message for the [`EditorView`]
+    /// The message is displayed in the status line.
+    /// If the message is `None`, the message is not displayed.
+    /// The message will be displayed for the specified duration.
+    #[must_use]
+    pub fn message(mut self, message: Option<EditorMessage>) -> Self {
+        self.message = message;
         self
     }
 

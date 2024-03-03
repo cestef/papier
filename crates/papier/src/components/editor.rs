@@ -16,8 +16,8 @@ use crate::{
 use color_eyre::eyre::{eyre, Result};
 use crossterm::event::{KeyCode, KeyEvent};
 use edtui::{
-    actions::Execute, state::command::Command, EditorMode, EditorState, EditorTheme, EditorView, Index2, Input, Lines,
-    StatusLine,
+    actions::Execute, state::command::Command, view::EditorMessage, EditorMode, EditorState, EditorTheme, EditorView,
+    Index2, Input, Lines, StatusLine,
 };
 use ratatui::{prelude::*, style::palette::tailwind::PURPLE, widgets::*};
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,6 @@ pub struct Editor {
     config: Config,
     buffers: HashMap<String, Buffer>,
     current_buffer: Option<String>,
-    message: Option<String>,
 }
 
 impl Editor {
@@ -50,7 +49,7 @@ impl Editor {
             buffers.insert("".to_string(), buffer);
             Some("".to_string())
         };
-        Self { command_tx: None, config, buffers, current_buffer, message: None }
+        Self { command_tx: None, config, buffers, current_buffer }
     }
 
     pub fn current_buffer(&mut self) -> Option<&mut Buffer> {
@@ -63,6 +62,7 @@ pub struct Buffer {
     modified: bool,
     state: EditorState,
     input: Input<PapierAction>,
+    message: Option<String>,
 }
 
 impl Buffer {
@@ -74,7 +74,7 @@ impl Buffer {
         let state = EditorState::new(Lines::from(lines), path.to_string_lossy().split('.').last().unwrap_or_default());
         let mut input: Input<_> = keybindings.into();
         Self::init_commands(&mut input);
-        Ok(Self { path: Some(path), modified: false, state, input })
+        Ok(Self { path: Some(path), modified: false, state, input, message: None })
     }
 
     fn init_commands(input: &mut Input<PapierAction>) {
@@ -115,7 +115,7 @@ Don't hesitate to open issues or submit pull requests to contribute!
         );
         let mut input: Input<_> = keybindings.into();
         Self::init_commands(&mut input);
-        Ok(Self { path, modified: false, state, input })
+        Ok(Self { path, modified: false, state, input, message: None })
     }
 
     fn save(&mut self) -> io::Result<()> {
@@ -188,7 +188,7 @@ impl Component for Editor {
                 PapierAction::SaveAs(i) => {
                     let args = i.split_whitespace().skip(1).collect::<Vec<&str>>();
                     if args.len() != 1 {
-                        self.message = Some("Invalid arguments".to_string());
+                        current_buffer.message = Some("Invalid arguments".to_string());
                     } else {
                         let path = PathBuf::from(args[0]);
                         current_buffer.save_as(path)?;
@@ -231,7 +231,9 @@ impl Component for Editor {
             })
             .line_numbers_style(Style::default().fg(Color::DarkGray).bg(Color::Reset));
 
-        let editor = EditorView::new(state).theme(theme);
+        let editor = EditorView::new(state).theme(theme).message(
+            current_buffer.message.as_ref().map(|m| EditorMessage::new(m.to_string(), Duration::from_secs(3))),
+        );
         let buf = f.buffer_mut();
         editor.render(bottom, buf);
 
