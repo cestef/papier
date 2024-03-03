@@ -1,4 +1,4 @@
-use ratatui::{prelude::*};
+use ratatui::prelude::*;
 
 use super::theme::WHITE;
 
