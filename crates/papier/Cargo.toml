@@ -6,7 +6,7 @@ description = "Catastrophic editor"
 authors = ["cstef <root@cstef.dev>"]
 repository = "https://github.com/cestef/papier"
 license = "MIT"
-readme = "README.md"
+readme = "../../README.md"
 keywords = ["editor", "catastrophic", "vim"]
 
 [[bin]]
