@@ -48,4 +48,4 @@ tracing = "0.1.40"
 tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "serde"] }
 unicode-width = "0.1.11"
-edtui = { path = "../edtui", package = "edtui-papier", version = "*" }
+edtui = { path = "../edtui", package = "edtui-papier", version = "0.3.2" }
