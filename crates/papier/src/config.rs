@@ -22,7 +22,7 @@ use serde_json::Value as JsonValue;
 
 use crate::PapierAction;
 
-const CONFIG: &str = include_str!("../../../.config/config.toml");
+const CONFIG: &str = include_str!("../.config/config.toml");
 
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct AppConfig {
