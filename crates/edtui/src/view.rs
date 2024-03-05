@@ -121,7 +121,14 @@ impl Widget for EditorView<'_, '_> {
             if let Some(line_numbers_style) = self.theme.line_numbers_style {
                 let line_number = (y_off + i + 1).to_string();
                 let line_number_x = side.right() - line_number.len() as u16;
-                buf.get_mut(line_number_x, y).set_symbol(&line_number).set_style(line_numbers_style);
+                for (j, c) in line_number.chars().enumerate() {
+                    let x = line_number_x + j as u16;
+                    if x < side.right() && y < side.bottom() {
+                        buf.get_mut(x, y).set_symbol(&c.to_string()).set_style(line_numbers_style);
+                    } else {
+                        break;
+                    }
+                }
             }
 
             let tokens = self.state.highlighter.line(y_off + i, &line.iter().collect());
