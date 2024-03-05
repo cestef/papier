@@ -33,7 +33,6 @@ futures = "0.3.28"
 human-panic = "1.2.3"
 json5 = "0.4.1"
 lazy_static = "1.4.0"
-libc = "0.2.148"
 log = "0.4.20"
 pretty_assertions = "1.4.0"
 ratatui = { version = "0.26.1", features = ["serde", "macros"] }
@@ -47,5 +46,4 @@ toml = "0.8.10"
 tracing = "0.1.40"
 tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "serde"] }
-unicode-width = "0.1.11"
 edtui = { path = "../edtui", package = "edtui-papier", version = "0.3.2" }
