@@ -2,6 +2,21 @@
 resolver = "2"
 members = ["crates/papier", "crates/edtui"]
 
+
+[workspace.package]
+version = "0.2.0"
+authors = ["cstef <root@cstef.dev>"]
+readme = "README.md"
+license = "MIT"
+edition = "2021"
+
+[workspace.dependencies]
+ratatui = "0.26.1"
+crossterm = "0.27.0"
+serde = "1.0.197"
+tokio = "1.36.0"
+edtui = { path = "crates/edtui", package = "edtui" }
+
 [profile.release]
 lto = true
 strip = true
