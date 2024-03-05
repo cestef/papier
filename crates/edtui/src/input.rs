@@ -19,7 +19,6 @@ use crate::{
         MoveWordBackward, MoveWordForwardStart, Paste, Redo, RemoveChar, RemoveCharFromSearch, SelectBetween,
         StopSearch, SwitchMode, TriggerSearch, Undo,
     },
-    debug::log_to_file,
     state::command::CommandState,
     EditorMode, EditorState,
 };
@@ -195,7 +194,6 @@ where
             },
             KeyCode::Char(c) if mode == EditorMode::Command => {
                 self.command.push_char(c);
-                log_to_file(format!("Command: {}", self.command.input));
                 state.command = self.command.input.clone();
             },
             KeyCode::Backspace if mode == EditorMode::Command => {
@@ -209,10 +207,8 @@ where
             },
             KeyCode::Enter if mode == EditorMode::Command => {
                 let commands = self.command.available_commands.clone();
-                log_to_file(format!("Commands: {:?}", commands));
                 let command =
                     commands.iter().find(|c| c.name == self.command.input || c.aliases.contains(&self.command.input));
-                log_to_file(format!("Command: {:?}", command.clone()));
                 state.mode = EditorMode::Normal;
                 self.command.clear();
                 state.command = self.command.input.clone();

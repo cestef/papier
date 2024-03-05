@@ -196,7 +196,7 @@ impl Widget for EditorView<'_, '_> {
 /// Ensures that the displayed cursor position doesn't exceed the line length.
 /// If the internal cursor position exceeds the maximum column, clamp it to
 /// the maximum.
-fn displayed_cursor(state: &EditorState) -> Index2 {
+pub fn displayed_cursor(state: &EditorState) -> Index2 {
     let max_col = max_col(&state.lines, &state.cursor, state.mode);
     Index2::new(state.cursor.row, state.cursor.col.min(max_col))
 }

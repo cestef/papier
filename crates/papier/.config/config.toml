@@ -1,2 +1,3 @@
 [keybindings.normal]
-W = { action = "SwitchMode", payload = "insert" }
+"ctrl-l" = { action = "Custom", payload = "NextBuffer" }
+"ctrl-h" = { action = "Custom", payload = "PreviousBuffer" }

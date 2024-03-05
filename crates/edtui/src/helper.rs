@@ -12,6 +12,7 @@ pub fn insert_char(lines: &mut Lines, index: &mut Index2, ch: char, skip_move: b
     if ch == '\n' {
         line_break(lines, index, highlighter);
     } else {
+        index.col = index.col.min(max_col(lines, index, EditorMode::Insert));
         lines.insert(*index, ch);
         let y = index.row;
         highlighter.edit(y, &lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>()[y]);

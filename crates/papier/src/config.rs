@@ -45,7 +45,6 @@ pub struct Config {
 impl Config {
     pub fn new() -> Result<Self, config::ConfigError> {
         let default_config: Config = toml::from_str(CONFIG).unwrap();
-        debug!("{:#?}", default_config);
         let data_dir = crate::utils::get_data_dir();
         let config_dir = crate::utils::get_config_dir();
         let mut builder = config::Config::builder()
@@ -107,7 +106,6 @@ impl<'de> Deserialize<'de> for KeyBindings {
                 (mode, converted_inner_map)
             })
             .collect();
-        debug!("{:#?}", keybindings);
 
         Ok(KeyBindings(keybindings))
     }

@@ -1,12 +1,3 @@
-use std::{
-    collections::HashMap,
-    fmt::{Debug, Display},
-    fs,
-    io::{self, BufRead, Write},
-    path::PathBuf,
-    time::Duration,
-};
-
 use super::{Component, Frame};
 use crate::{
     action::Action,
@@ -21,8 +12,15 @@ use edtui::{
 };
 use ratatui::{prelude::*, style::palette::tailwind::PURPLE, widgets::*};
 use serde::{Deserialize, Serialize};
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Display},
+    fs,
+    io::{self, BufRead, Write},
+    path::PathBuf,
+    time::Duration,
+};
 use tokio::sync::mpsc::UnboundedSender;
-// use tui_textarea::{CursorMove, Input, Key, Scrolling, TextArea};
 
 pub struct Theme<'a> {
     pub editor: EditorTheme<'a>,
@@ -32,32 +30,47 @@ pub struct Theme<'a> {
 pub struct Editor {
     command_tx: Option<UnboundedSender<Action>>,
     config: Config,
-    buffers: HashMap<String, Buffer>,
-    current_buffer: Option<String>,
+    buffers: Vec<Buffer>,
+    current_buffer: Option<usize>,
 }
 
 impl Editor {
-    pub fn new(file: Option<PathBuf>) -> Self {
+    pub fn new(files: Vec<PathBuf>) -> Self {
         let config = Config::default();
-        let mut buffers = HashMap::new();
-        let current_buffer = if let Some(ref f) = file {
-            let buffer = Buffer::from_path(f.clone(), config.keybindings.clone(), None).unwrap();
-            buffers.insert(f.to_string_lossy().to_string(), buffer);
-            Some(f.to_string_lossy().to_string())
+        let mut buffers = Vec::new();
+        if !files.is_empty() {
+            for file in files {
+                let buffer = Buffer::new(Some(file.clone()), config.keybindings.clone(), None, None).unwrap();
+                buffers.push(buffer);
+            }
         } else {
-            let buffer = Buffer::new(None, config.keybindings.clone(), None).unwrap();
-            buffers.insert("".to_string(), buffer);
-            Some("".to_string())
+            let welcome_buffer = Buffer::new(None, config.keybindings.clone(), None, Some("Welcome".into())).unwrap();
+            buffers.push(welcome_buffer);
+            let test_buffer = Buffer::new(None, config.keybindings.clone(), None, Some("Test".into())).unwrap();
+            buffers.push(test_buffer);
+            let test_buffer = Buffer::new(None, config.keybindings.clone(), None, Some("Test".into())).unwrap();
+            buffers.push(test_buffer);
+            let test_buffer = Buffer::new(None, config.keybindings.clone(), None, Some("Test".into())).unwrap();
+            buffers.push(test_buffer);
+            let test_buffer = Buffer::new(None, config.keybindings.clone(), None, Some("Test".into())).unwrap();
+            buffers.push(test_buffer);
+            let test_buffer = Buffer::new(None, config.keybindings.clone(), None, Some("Test".into())).unwrap();
+            buffers.push(test_buffer);
+            let test_buffer = Buffer::new(None, config.keybindings.clone(), None, Some("Test".into())).unwrap();
+            buffers.push(test_buffer);
+            let test_buffer = Buffer::new(None, config.keybindings.clone(), None, Some("Test".into())).unwrap();
+            buffers.push(test_buffer);
         };
-        Self { command_tx: None, config, buffers, current_buffer }
+        Self { command_tx: None, config, buffers, current_buffer: Some(0) }
     }
 
     pub fn current_buffer(&mut self) -> Option<&mut Buffer> {
-        self.current_buffer.as_ref().and_then(|b| self.buffers.get_mut(b))
+        self.current_buffer.as_ref().and_then(|b| self.buffers.get_mut(*b))
     }
 }
 
 pub struct Buffer {
+    name: Option<String>,
     path: Option<PathBuf>,
     modified: bool,
     state: EditorState,
@@ -66,17 +79,6 @@ pub struct Buffer {
 }
 
 impl Buffer {
-    fn from_path(path: PathBuf, keybindings: KeyBindings, tx: Option<UnboundedSender<Action>>) -> io::Result<Self> {
-        let file = fs::File::open(&path)?;
-        let reader = io::BufReader::new(file);
-        let lines: &str = &reader.lines().map_while(Result::ok).collect::<Vec<String>>().join("\n");
-        log::debug!("Read file: {}", lines);
-        let state = EditorState::new(Lines::from(lines), path.to_string_lossy().split('.').last().unwrap_or_default());
-        let mut input: Input<_> = keybindings.into();
-        Self::init_commands(&mut input);
-        Ok(Self { path: Some(path), modified: false, state, input, message: None })
-    }
-
     fn init_commands(input: &mut Input<PapierAction>) {
         input.command.available_commands.extend([
             Command::new("quit".to_string(), "Quit the app".to_string(), vec!["q".to_string()], |_| PapierAction::Quit),
@@ -92,10 +94,23 @@ impl Buffer {
         ]);
     }
 
-    fn new(path: Option<PathBuf>, keybindings: KeyBindings, tx: Option<UnboundedSender<Action>>) -> io::Result<Self> {
-        let state = EditorState::new(
-            Lines::from(
-                "papier is a light-weight vim inspired TUI editor using the RataTUI ecosystem.
+    fn new(
+        path: Option<PathBuf>,
+        keybindings: KeyBindings,
+        tx: Option<UnboundedSender<Action>>,
+        name: Option<String>,
+    ) -> io::Result<Self> {
+        let state = match path {
+            Some(ref path) => {
+                let file = fs::File::open(path)?;
+                let reader = io::BufReader::new(file);
+                let lines: &str = &reader.lines().map_while(Result::ok).collect::<Vec<String>>().join("\n");
+                log::debug!("Read file: {}", lines);
+                EditorState::new(Lines::from(lines), path.to_string_lossy().split('.').last().unwrap_or_default())
+            },
+            None => EditorState::new(
+                Lines::from(
+                    "papier is a light-weight vim inspired TUI editor using the RataTUI ecosystem.
 
 Navigate right (l), left (h), up (k) and down (j), using vim motions.
     
@@ -110,12 +125,20 @@ Built-in search using the '/' command.
 This editor is under active development.
 Don't hesitate to open issues or submit pull requests to contribute!
 ",
+                ),
+                "txt",
             ),
-            "txt",
-        );
+        };
         let mut input: Input<_> = keybindings.into();
         Self::init_commands(&mut input);
-        Ok(Self { path, modified: false, state, input, message: None })
+        Ok(Self {
+            path: path.clone(),
+            modified: false,
+            state,
+            input,
+            message: None,
+            name: name.or_else(|| path.map(|p| p.file_name().unwrap().to_string_lossy().to_string())),
+        })
     }
 
     fn save(&mut self) -> io::Result<()> {
@@ -161,7 +184,7 @@ impl Component for Editor {
 
     fn register_config_handler(&mut self, config: Config) -> Result<()> {
         self.config = config;
-        self.buffers.values_mut().for_each(|b| {
+        self.buffers.iter_mut().for_each(|b| {
             let mut input: Input<_> = self.config.keybindings.clone().into();
             input.command.available_commands = b.input.command.available_commands.clone();
             b.input = input;
@@ -178,8 +201,17 @@ impl Component for Editor {
         if let Some(custom) = maybe_custom {
             match custom.0 {
                 PapierAction::Quit => {
-                    if let Some(tx) = &self.command_tx {
-                        tx.send(Action::Quit)?;
+                    // If there is still a buffer open, close it, else quit the app
+                    if self.buffers.len() > 1 {
+                        let index = self.current_buffer.unwrap();
+                        self.buffers.remove(index);
+                        // check if the previous buffer exists
+                        if !self.buffers.is_empty() {
+                            self.current_buffer = Some((index + self.buffers.len() - 1) % self.buffers.len());
+                            self.current_buffer().unwrap().state.reset_highlighter();
+                        }
+                    } else {
+                        return Ok(Some(Action::Quit));
                     }
                 },
                 PapierAction::Save => {
@@ -194,14 +226,36 @@ impl Component for Editor {
                         current_buffer.save_as(path)?;
                     }
                 },
+                PapierAction::NextBuffer => {
+                    let index = self.current_buffer.unwrap();
+                    let next = (index + 1) % self.buffers.len();
+                    self.current_buffer = Some(next);
+                    self.current_buffer().unwrap().state.reset_highlighter();
+                },
+                PapierAction::PreviousBuffer => {
+                    let index = self.current_buffer.unwrap();
+                    let next = (index + self.buffers.len() - 1) % self.buffers.len();
+                    self.current_buffer = Some(next);
+                    self.current_buffer().unwrap().state.reset_highlighter();
+                },
+                PapierAction::Open(i) => {
+                    let path = PathBuf::from(i);
+                    let buffer = Buffer::new(Some(path), self.config.keybindings.clone(), None, None)?;
+                    self.buffers.push(buffer);
+                    self.current_buffer = Some(self.buffers.len() - 1);
+                },
             }
-        }
+        };
 
         Ok(None)
     }
 
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
-        let [_, bottom] = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).areas(area);
+        let [_, top, bottom] =
+            Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Min(0)]).areas(area);
+
+        let buffer_index = self.current_buffer.unwrap();
+        let buffer_count = self.buffers.len();
         let current_buffer = self.current_buffer().unwrap();
         let state = &mut current_buffer.state;
         let theme = EditorTheme::default()
@@ -209,7 +263,7 @@ impl Component for Editor {
             .selection_style(Style::default().bg(Color::LightMagenta).fg(Color::Reset))
             .status_line(
                 StatusLine::default()
-                    .style_text(match state.mode {
+                    .style_mode(match state.mode {
                         edtui::EditorMode::Insert => Style::default().bg(Color::LightYellow).fg(LIGHT_GRAY),
                         edtui::EditorMode::Normal => Style::default().bg(Color::Reset).fg(LIGHT_GRAY),
                         edtui::EditorMode::Visual => Style::default().bg(Color::LightMagenta).fg(LIGHT_GRAY),
@@ -223,6 +277,13 @@ impl Component for Editor {
                         edtui::EditorMode::Search => Style::default().bg(Color::Blue),
                         EditorMode::Command => Style::default().bg(Color::Red),
                     })
+                    .text(Some(format!(
+                        "{}/{} {}:{}",
+                        buffer_index + 1,
+                        buffer_count,
+                        state.cursor.row,
+                        state.cursor.col
+                    )))
                     .align_left(true),
             )
             .cursor_style(match state.mode {
@@ -234,9 +295,21 @@ impl Component for Editor {
         let editor = EditorView::new(state).theme(theme).message(
             current_buffer.message.as_ref().map(|m| EditorMessage::new(m.to_string(), Duration::from_secs(3))),
         );
+
         let buf = f.buffer_mut();
         editor.render(bottom, buf);
+        let n = self.buffers.len();
+        let top_areas = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints((0..n).map(|_| Constraint::Ratio(1, n as u32)).collect::<Vec<_>>())
+            .split(top);
 
+        for (i, area) in top_areas.iter().enumerate() {
+            let buffer = &self.buffers[i];
+            let style = if i == buffer_index { Style::default().bg(Color::Gray) } else { Style::default() };
+            let text = buffer.name.clone().unwrap_or_else(|| "Untitled".to_string());
+            Paragraph::new(format!("{}: {}", i + 1, text)).style(style).wrap(Wrap { trim: false }).render(*area, buf);
+        }
         Ok(())
     }
 }

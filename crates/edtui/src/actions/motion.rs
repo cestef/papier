@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 
 use super::Execute;
 use crate::{
-    debug::log_to_file,
     helper::{max_col, max_row, set_selection, skip_whitespace, skip_whitespace_rev},
     EditorMode, EditorState,
 };
@@ -138,9 +137,7 @@ impl Execute for MoveWordForwardEnd {
             let first_char = state.lines.get(index);
             let mut iter = state.lines.iter().from(index);
             iter.next();
-            log_to_file(format!("index: {:?}", index));
             skip_whitespace(lines, &mut index);
-            log_to_file(format!("index_after: {:?}", index));
             for (val, i) in iter {
                 // Break loop if it reaches the end of the line
                 if state.cursor.col >= max_col(&state.lines, &state.cursor, state.mode) {

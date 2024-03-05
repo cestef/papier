@@ -25,6 +25,6 @@ pub struct Cli {
     )]
     pub frame_rate: f64,
 
-    #[arg(value_name = "PATH", help = "Path to the file to open")]
-    pub file: Option<PathBuf>,
+    #[arg(value_name = "PATH", help = "Paths to the files to open")]
+    pub files: Vec<PathBuf>,
 }

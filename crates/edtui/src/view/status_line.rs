@@ -9,14 +9,16 @@ pub struct StatusLine {
     mode: String,
     /// The current search buffer. Shown only in search mode.
     search: Option<String>,
-    /// The style for the content of the sidebar
-    style_text: Style,
+    /// The style for the status line mode
+    style_mode: Style,
     /// The style for the line itself
     style_line: Style,
     // Whether to align content to the left (true) or the right (false)
     align_left: bool,
     /// The command buffer. Shown only in command mode.
     command: Option<String>,
+    // Custom text to display on the opposite side of the mode
+    text: Option<String>,
 }
 
 impl Default for StatusLine {
@@ -27,10 +29,11 @@ impl Default for StatusLine {
         Self {
             mode: String::new(),
             search: None,
-            style_text: Style::default().fg(LIGHT_GRAY).bg(LIGHT_PURPLE).bold(),
+            style_mode: Style::default().fg(LIGHT_GRAY).bg(LIGHT_PURPLE).bold(),
             style_line: Style::default().fg(LIGHT_GRAY).bg(DARK_PURPLE),
             align_left: true,
             command: None,
+            text: None,
         }
     }
 }
@@ -41,8 +44,8 @@ impl StatusLine {
     /// This method allows you to customize the appearance of the
     /// status lines content.
     #[must_use]
-    pub fn style_text(mut self, style: Style) -> Self {
-        self.style_text = style;
+    pub fn style_mode(mut self, style: Style) -> Self {
+        self.style_mode = style;
         self
     }
 
@@ -91,6 +94,13 @@ impl StatusLine {
         self.command = command.map(Into::into);
         self
     }
+
+    /// Overwrite the text content for the status line.
+    #[must_use]
+    pub fn text<S: Into<String>>(mut self, text: Option<S>) -> Self {
+        self.text = text.map(Into::into);
+        self
+    }
 }
 
 impl Widget for StatusLine {
@@ -105,7 +115,7 @@ impl Widget for StatusLine {
 
         // Build the content and block widgets
         let mode_paragraph =
-            Paragraph::new(Line::from(Span::from(self.mode))).alignment(Alignment::Center).style(self.style_text);
+            Paragraph::new(Line::from(Span::from(self.mode))).alignment(Alignment::Center).style(self.style_mode);
         let search_text = self.search.map_or(String::new(), |s| format!(" /{s}"));
         let search_paragraph =
             Paragraph::new(Line::from(Span::from(search_text))).alignment(Alignment::Left).style(self.style_line);
@@ -114,15 +124,20 @@ impl Widget for StatusLine {
         let command_paragraph =
             Paragraph::new(Line::from(Span::from(command_text))).alignment(Alignment::Left).style(self.style_line);
 
+        let text_paragraph = self.text.map_or(String::new(), |s| s);
+        let text_paragraph =
+            Paragraph::new(Line::from(Span::from(text_paragraph))).alignment(Alignment::Right).style(self.style_line);
         // Determine the alignment position
         if self.align_left {
             mode_paragraph.render(left, buf);
             search_paragraph.render(right, buf);
             command_paragraph.render(right, buf);
+            text_paragraph.render(right, buf);
         } else {
             search_paragraph.render(left, buf);
             command_paragraph.render(left, buf);
             mode_paragraph.render(right, buf);
+            text_paragraph.render(left, buf);
         };
     }
 }

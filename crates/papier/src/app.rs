@@ -25,8 +25,8 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(tick_rate: f64, frame_rate: f64, file: Option<PathBuf>) -> Result<Self> {
-        let editor = Editor::new(file);
+    pub fn new(tick_rate: f64, frame_rate: f64, files: Vec<PathBuf>) -> Result<Self> {
+        let editor = Editor::new(files);
         let fps = FpsCounter::default();
         let config = Config::new()?;
         Ok(Self {

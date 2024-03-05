@@ -90,4 +90,8 @@ impl EditorState {
     pub fn set_clipboard(&mut self, clipboard: impl ClipboardTrait + 'static) {
         self.clip = Clipboard::new(clipboard);
     }
+
+    pub fn reset_highlighter(&mut self) {
+        self.highlighter.run(&self.lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>());
+    }
 }

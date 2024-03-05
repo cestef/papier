@@ -52,6 +52,7 @@ impl EditorState {
         if let Some(prev) = self.undo.pop() {
             let current = UndoState { lines: self.lines.clone(), cursor: self.cursor };
             self.lines = prev.lines;
+            self.highlighter.run(&self.lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>());
             self.cursor = prev.cursor;
             self.redo.push(current);
         }
@@ -61,6 +62,7 @@ impl EditorState {
         if let Some(prev) = self.redo.pop() {
             let current = UndoState { lines: self.lines.clone(), cursor: self.cursor };
             self.lines = prev.lines;
+            self.highlighter.run(&self.lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>());
             self.cursor = prev.cursor;
             self.undo.push(current);
         }
