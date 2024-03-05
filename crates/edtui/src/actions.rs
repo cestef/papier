@@ -9,6 +9,7 @@ pub mod select;
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 
+use self::motion::{MoveToFirstLine, MoveToLastLine};
 pub use self::{
     cpaste::{CopySelection, Paste},
     delete::{DeleteChar, DeleteLine, DeleteSelection, RemoveChar},
@@ -42,6 +43,8 @@ pub enum Action<I: Clone + Execute> {
     MoveToStart(MoveToStart),
     MoveToFirst(MoveToFirst),
     MoveToEnd(MoveToEnd),
+    MoveToFirstLine(MoveToFirstLine),
+    MoveToLastLine(MoveToLastLine),
     InsertChar(InsertChar),
     LineBreak(LineBreak),
     AppendNewline(AppendNewline),

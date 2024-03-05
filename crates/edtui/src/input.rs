@@ -13,11 +13,12 @@ use self::{
 };
 use crate::{
     actions::{
-        motion::MoveWordForwardEnd, search::StartSearch, Action, Append, AppendCharToSearch, AppendNewline, Composed,
-        CopySelection, Custom, DeleteChar, DeleteLine, DeleteSelection, Execute, FindNext, FindPrevious, InsertChar,
-        InsertNewline, LineBreak, MoveBackward, MoveDown, MoveForward, MoveToEnd, MoveToFirst, MoveToStart, MoveUp,
-        MoveWordBackward, MoveWordForwardStart, Paste, Redo, RemoveChar, RemoveCharFromSearch, SelectBetween,
-        StopSearch, SwitchMode, TriggerSearch, Undo,
+        motion::{MoveToFirstLine, MoveToLastLine, MoveWordForwardEnd},
+        search::StartSearch,
+        Action, Append, AppendCharToSearch, AppendNewline, Composed, CopySelection, Custom, DeleteChar, DeleteLine,
+        DeleteSelection, Execute, FindNext, FindPrevious, InsertChar, InsertNewline, LineBreak, MoveBackward, MoveDown,
+        MoveForward, MoveToEnd, MoveToFirst, MoveToStart, MoveUp, MoveWordBackward, MoveWordForwardStart, Paste, Redo,
+        RemoveChar, RemoveCharFromSearch, SelectBetween, StopSearch, SwitchMode, TriggerSearch, Undo,
     },
     state::command::CommandState,
     EditorMode, EditorState,
@@ -109,6 +110,8 @@ where
         r.insert(RegisterKey::v(vec![Key::Char('0')]), MoveToStart());
         r.insert(RegisterKey::v(vec![Key::Char('_')]), MoveToFirst());
         r.insert(RegisterKey::v(vec![Key::Char('$')]), MoveToEnd());
+        r.insert(RegisterKey::n(vec![Key::Char('g'), Key::Char('g')]), MoveToFirstLine());
+        r.insert(RegisterKey::n(vec![Key::Char('G')]), MoveToLastLine());
 
         // Move cursor to start/first/last position and enter insert mode
         r.insert(

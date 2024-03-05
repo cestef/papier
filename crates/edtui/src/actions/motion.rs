@@ -262,6 +262,8 @@ impl Execute for MoveToFirst {
     fn execute(&mut self, state: &mut EditorState) {
         state.cursor.col = 0;
 
+        skip_whitespace(&state.lines, &mut state.cursor);
+
         if state.mode == EditorMode::Visual {
             set_selection(&mut state.selection, state.cursor);
         }
@@ -275,6 +277,36 @@ pub struct MoveToEnd();
 impl Execute for MoveToEnd {
     fn execute(&mut self, state: &mut EditorState) {
         state.cursor.col = max_col(&state.lines, &state.cursor, state.mode);
+
+        if state.mode == EditorMode::Visual {
+            set_selection(&mut state.selection, state.cursor);
+        }
+    }
+}
+
+// Move the cursor to the end of the file.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct MoveToLastLine();
+
+impl Execute for MoveToLastLine {
+    fn execute(&mut self, state: &mut EditorState) {
+        state.cursor.row = max_row(state);
+        state.cursor.col = max_col(&state.lines, &state.cursor, state.mode);
+
+        if state.mode == EditorMode::Visual {
+            set_selection(&mut state.selection, state.cursor);
+        }
+    }
+}
+
+// Move the cursor to the start of the file.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct MoveToFirstLine();
+
+impl Execute for MoveToFirstLine {
+    fn execute(&mut self, state: &mut EditorState) {
+        state.cursor.row = 0;
+        state.cursor.col = 0;
 
         if state.mode == EditorMode::Visual {
             set_selection(&mut state.selection, state.cursor);
