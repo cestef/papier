@@ -91,6 +91,22 @@ impl Buffer {
                 vec!["wq".to_string()],
                 PapierAction::SaveAs,
             ),
+            Command::new(
+                "next_buffer".to_string(),
+                "Switch to the next buffer".to_string(),
+                vec!["n".to_string()],
+                |_| PapierAction::NextBuffer,
+            ),
+            Command::new(
+                "previous_buffer".to_string(),
+                "Switch to the previous buffer".to_string(),
+                vec!["N".to_string()],
+                |_| PapierAction::PreviousBuffer,
+            ),
+            Command::new("open".to_string(), "Open a file".to_string(), vec!["e".to_string()], PapierAction::Open),
+            Command::new("quit_all".to_string(), "Quit the app".to_string(), vec!["qa".to_string()], |_| {
+                PapierAction::QuitAll
+            }),
         ]);
     }
 
@@ -244,6 +260,7 @@ impl Component for Editor {
                     self.buffers.push(buffer);
                     self.current_buffer = Some(self.buffers.len() - 1);
                 },
+                PapierAction::QuitAll => return Ok(Some(Action::Quit)),
             }
         };
 
@@ -251,8 +268,7 @@ impl Component for Editor {
     }
 
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
-        let [_, top, bottom] =
-            Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Min(0)]).areas(area);
+        let [top, bottom] = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).areas(area);
 
         let buffer_index = self.current_buffer.unwrap();
         let buffer_count = self.buffers.len();
@@ -268,14 +284,14 @@ impl Component for Editor {
                         edtui::EditorMode::Normal => Style::default().bg(Color::Reset).fg(LIGHT_GRAY),
                         edtui::EditorMode::Visual => Style::default().bg(Color::LightMagenta).fg(LIGHT_GRAY),
                         edtui::EditorMode::Search => Style::default().bg(Color::LightBlue).fg(LIGHT_GRAY),
-                        EditorMode::Command => Style::default().bg(Color::LightRed).fg(LIGHT_GRAY),
+                        EditorMode::Command => Style::default().bg(Color::Gray).fg(LIGHT_GRAY),
                     })
                     .style_line(match state.mode {
                         edtui::EditorMode::Insert => Style::default().bg(Color::Yellow),
                         edtui::EditorMode::Normal => Style::default().bg(Color::Reset),
                         edtui::EditorMode::Visual => Style::default().bg(Color::Magenta),
                         edtui::EditorMode::Search => Style::default().bg(Color::Blue),
-                        EditorMode::Command => Style::default().bg(Color::Red),
+                        EditorMode::Command => Style::default().bg(Color::DarkGray),
                     })
                     .text(Some(format!(
                         "{}/{} {}:{}",
@@ -306,9 +322,9 @@ impl Component for Editor {
 
         for (i, area) in top_areas.iter().enumerate() {
             let buffer = &self.buffers[i];
-            let style = if i == buffer_index { Style::default().bg(Color::Gray) } else { Style::default() };
+            let style = if i == buffer_index { Style::default().bg(Color::DarkGray) } else { Style::default() };
             let text = buffer.name.clone().unwrap_or_else(|| "Untitled".to_string());
-            Paragraph::new(format!("{}: {}", i + 1, text)).style(style).wrap(Wrap { trim: false }).render(*area, buf);
+            Paragraph::new(format!(" {}: {}", i + 1, text)).style(style).wrap(Wrap { trim: false }).render(*area, buf);
         }
         Ok(())
     }

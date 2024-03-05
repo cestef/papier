@@ -27,12 +27,12 @@ pub struct App {
 impl App {
     pub fn new(tick_rate: f64, frame_rate: f64, files: Vec<PathBuf>) -> Result<Self> {
         let editor = Editor::new(files);
-        let fps = FpsCounter::default();
+        // let fps = FpsCounter::default();
         let config = Config::new()?;
         Ok(Self {
             tick_rate,
             frame_rate,
-            components: vec![Box::new(editor), Box::new(fps)],
+            components: vec![Box::new(editor)],
             should_quit: false,
             should_suspend: false,
             config,
