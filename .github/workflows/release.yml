@@ -60,7 +60,7 @@ jobs:
               uses: Swatinem/rust-cache@v2.7.3
             - uses: taiki-e/upload-rust-binary-action@v1
               with:
-                  bin: rwalk
+                  bin: ppr
                   target: ${{ matrix.target }}
                   token: ${{ secrets.GITHUB_TOKEN }}
                   archive: $bin-${{ steps.tag.outputs.tag }}-${{ matrix.tar_os }}-${{ matrix.tar_arch }}
@@ -79,7 +79,7 @@ jobs:
                   commit_owner: homebrew-releaser
                   commit_email: homebrew-releaser@cstef.dev
 
-                  install: 'bin.install "rwalk"'
+                  install: 'bin.install "ppr"'
 
                   target_darwin_amd64: true
                   target_darwin_arm64: true
