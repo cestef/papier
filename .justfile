@@ -18,3 +18,5 @@ bump BUMP_TYPE="patch":
     VERSION=$(cargo pkgid papier | cut -d# -f2 | cut -d: -f2)
     git commit -m "Bump version to v$VERSION"
     git tag -a v$VERSION -m "Release v$VERSION"
+    git push --follow-tags
+    rr -o dist
