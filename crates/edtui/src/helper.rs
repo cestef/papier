@@ -134,8 +134,12 @@ pub(crate) fn len_col(state: &EditorState) -> usize {
 mod tests {
     use super::*;
 
-    fn test_lines() -> Lines {
-        Lines::from("Hello World!\n\n123.")
+    fn test_lines() -> (Lines, Highlighter) {
+        let lines = Lines::from("Hello World!\n\n123.");
+        let mut highlighter = Highlighter::new(4);
+        highlighter.run(&lines.iter_row().map(|e| e.iter().collect()).collect::<Vec<String>>());
+
+        (lines, highlighter)
     }
 
     #[test]
@@ -168,26 +172,25 @@ mod tests {
 
     #[test]
     fn test_insert_str() {
-        let mut lines = test_lines();
+        let (mut lines, mut highlighter) = test_lines();
         let mut index = Index2::new(0, 5);
-
-        insert_str(&mut lines, &mut index, ",\n", &mut Highlighter::new(4));
+        insert_str(&mut lines, &mut index, ",\n", &mut highlighter);
         assert_eq!(index, Index2::new(1, 0));
         assert_eq!(lines, Lines::from("Hello,\n World!\n\n123."));
     }
 
     #[test]
     fn test_append_str() {
-        let mut lines = test_lines();
+        let (mut lines, mut highlighter) = test_lines();
         let mut index = Index2::new(0, 5);
 
-        append_str(&mut lines, &mut index, ",\n", &mut Highlighter::new(4));
+        append_str(&mut lines, &mut index, ",\n", &mut highlighter);
         assert_eq!(index, Index2::new(1, 0));
         assert_eq!(lines, Lines::from("Hello ,\nWorld!\n\n123."));
 
-        let mut lines = test_lines();
+        let (mut lines, mut highlighter) = test_lines();
         let mut index = Index2::new(1, 0);
-        append_str(&mut lines, &mut index, "abc", &mut Highlighter::new(4));
+        append_str(&mut lines, &mut index, "abc", &mut highlighter);
         assert_eq!(index, Index2::new(1, 2));
         assert_eq!(lines, Lines::from("Hello World!\nabc\n123."));
     }

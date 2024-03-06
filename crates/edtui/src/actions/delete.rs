@@ -122,8 +122,8 @@ impl Execute for DeleteSelection {
 pub(crate) fn delete_selection(state: &mut EditorState, selection: &Selection) {
     state.cursor = selection.end();
 
-    if let Some(len) = state.lines.len_col(state.cursor.row) {
-        state.cursor.col = state.cursor.col.min(len);
+    if state.lines.len_col(state.cursor.row).unwrap_or_default() > 0 {
+        state.cursor.col += 1;
     }
     while state.cursor != selection.start() {
         delete_char(&mut state.lines, &mut state.cursor, &mut state.highlighter);
