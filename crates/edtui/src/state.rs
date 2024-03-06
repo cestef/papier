@@ -63,9 +63,9 @@ impl EditorState {
     /// # Example
     ///
     /// ```
-    /// use edtui::{EditorState, Lines};
+    /// use edtui_papier::{EditorState, Lines};
     ///
-    /// let state = EditorState::new(Lines::from("First line\nSecond Line"));
+    /// let state = EditorState::new(Lines::from("First line\nSecond Line"), "txt");
     /// ```
     #[must_use]
     pub fn new(lines: Lines, ext: &str) -> EditorState {

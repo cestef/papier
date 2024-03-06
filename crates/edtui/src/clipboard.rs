@@ -71,7 +71,7 @@ impl Clipboard {
     /// ## Example
     ///
     /// ```
-    /// use edtui::clipboard::{Clipboard, ClipboardTrait};
+    /// use edtui_papier::clipboard::{Clipboard, ClipboardTrait};
     ///
     /// struct MyClipboard(String);
     ///
