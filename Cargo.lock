@@ -559,7 +559,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "edtui"
+name = "edtui-jagged"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7a26dc814881a4e2c998bfb232eedc731bd181fd6637cc5aa5e53c8acecd792"
+
+[[package]]
+name = "edtui-papier"
 version = "0.2.4"
 dependencies = [
  "arboard",
@@ -571,12 +577,6 @@ dependencies = [
  "synoptic",
  "tokio",
 ]
-
-[[package]]
-name = "edtui-jagged"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7a26dc814881a4e2c998bfb232eedc731bd181fd6637cc5aa5e53c8acecd792"
 
 [[package]]
 name = "either"
@@ -1169,7 +1169,7 @@ dependencies = [
  "crossterm",
  "derive_deref",
  "directories",
- "edtui",
+ "edtui-papier",
  "futures",
  "human-panic",
  "json5",

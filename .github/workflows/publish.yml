@@ -4,7 +4,7 @@ on:
             - "v*.*.*"
     workflow_dispatch:
 
-name: Publish
+name: Publish to crates.io
 
 jobs:
     publish:
@@ -21,6 +21,11 @@ jobs:
                   profile: minimal
                   toolchain: stable
                   override: true
-            - run: cargo publish --token ${CRATES_TOKEN} -p papier
+            - name: Publish edtui-papier
+              run: cargo publish --token ${CRATES_TOKEN} -p edtui-papier
+              env:
+                  CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
+            - name: Publish papier
+              run: cargo publish --token ${CRATES_TOKEN} -p papier
               env:
                   CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}

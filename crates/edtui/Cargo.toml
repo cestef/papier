@@ -1,5 +1,5 @@
 [package]
-name = "edtui"
+name = "edtui-papier"
 repository = "https://github.com/preiter93/edtui"
 keywords = ["ratatui", "tui", "editor", "text", "vim"]
 description = "A TUI based vim inspired editor"
