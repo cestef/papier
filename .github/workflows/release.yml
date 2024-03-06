@@ -63,7 +63,7 @@ jobs:
                   bin: ppr
                   target: ${{ matrix.target }}
                   token: ${{ secrets.GITHUB_TOKEN }}
-                  archive: $bin-${{ steps.tag.outputs.tag }}-${{ matrix.tar_os }}-${{ matrix.tar_arch }}
+                  archive: papier-${{ steps.tag.outputs.tag }}-${{ matrix.tar_os }}-${{ matrix.tar_arch }}
     homebrew-releaser:
         needs: upload-assets
         runs-on: ubuntu-latest
