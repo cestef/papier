@@ -9,184 +9,76 @@ on:
             - v[0-9]+.*
     workflow_dispatch:
 
-env:
-    BIN_NAME: ppr
-    PROJECT_NAME: papier
-    REPO_NAME: cestef/papier
-    BREW_TAP: cestef/homebrew-tap
-
 jobs:
-    dist:
-        name: Dist
-        runs-on: ${{ matrix.os }}
-        strategy:
-            fail-fast: false # don't fail other jobs if one fails
-            matrix:
-                build: [x86_64-linux, aarch64-linux, x86_64-macos, x86_64-windows, aarch64-macos]
-                include:
-                    - build: x86_64-linux
-                      os: ubuntu-20.04
-                      rust: stable
-                      target: x86_64-unknown-linux-gnu
-                      cross: false
-                    - build: aarch64-linux
-                      os: ubuntu-20.04
-                      rust: stable
-                      target: aarch64-unknown-linux-gnu
-                      cross: true
-                    - build: x86_64-macos
-                      os: macos-latest
-                      rust: stable
-                      target: x86_64-apple-darwin
-                      cross: false
-                    - build: x86_64-windows
-                      os: windows-2019
-                      rust: stable
-                      target: x86_64-pc-windows-msvc
-                      cross: false
-                    - build: aarch64-macos
-                      os: macos-latest
-                      rust: stable
-                      target: aarch64-apple-darwin
-
-        steps:
-            - name: Checkout sources
-              uses: actions/checkout@v2
-              with:
-                  submodules: true
-
-            - name: Install ${{ matrix.rust }} toolchain
-              uses: actions-rs/toolchain@v1
-              with:
-                  profile: minimal
-                  toolchain: ${{ matrix.rust }}
-                  target: ${{ matrix.target }}
-                  override: true
-
-            # - name: Run cargo test
-            #   uses: actions-rs/cargo@v1
-            #   with:
-            #       use-cross: ${{ matrix.cross }}
-            #       command: test
-            #       args: --release --locked --target ${{ matrix.target }}
-
-            - name: Build release binary
-              uses: actions-rs/cargo@v1
-              with:
-                  use-cross: ${{ matrix.cross }}
-                  command: build
-                  args: --release --locked --target ${{ matrix.target }}
-
-            - name: Strip release binary (linux and macos)
-              if: matrix.build == 'x86_64-linux' || matrix.build == 'x86_64-macos'
-              run: strip "target/${{ matrix.target }}/release/$BIN_NAME"
-
-            - name: Strip release binary (arm)
-              if: matrix.build == 'aarch64-linux'
-              run: |
-                  docker run --rm -v \
-                    "$PWD/target:/target:Z" \
-                    rustembedded/cross:${{ matrix.target }} \
-                    aarch64-linux-gnu-strip \
-                    /target/${{ matrix.target }}/release/$BIN_NAME
-
-            - name: Build archive
-              shell: bash
-              run: |
-                  mkdir dist
-                  if [ "${{ matrix.os }}" = "windows-2019" ]; then
-                    cp "target/${{ matrix.target }}/release/$BIN_NAME.exe" "dist/"
-                  else
-                    cp "target/${{ matrix.target }}/release/$BIN_NAME" "dist/"
-                  fi
-
-            - uses: actions/upload-artifact@v2.2.4
-              with:
-                  name: bins-${{ matrix.build }}
-                  path: dist
-
-    publish:
-        name: Publish
-        needs: [dist]
+    create-release:
         runs-on: ubuntu-latest
         steps:
-            - name: Checkout sources
-              uses: actions/checkout@v2
+            - uses: actions/checkout@v4
+            - uses: taiki-e/create-gh-release-action@v1
               with:
-                  submodules: false
+                  token: ${{ secrets.GITHUB_TOKEN }}
 
-            - uses: actions/download-artifact@v2
-              # with:
-              #   path: dist
-            # - run: ls -al ./dist
-            - run: ls -al bins-*
-
-            - name: Calculate tag name
-              run: |
-                  name=dev
-                  if [[ $GITHUB_REF == refs/tags/v* ]]; then
-                    name=${GITHUB_REF:10}
-                  fi
-                  echo ::set-output name=val::$name
-                  echo TAG=$name >> $GITHUB_ENV
-              id: tagname
-
-            - name: Build archive
-              shell: bash
-              run: |
-                  set -ex
-
-                  rm -rf tmp
-                  mkdir tmp
-                  mkdir dist
-
-                  for dir in bins-* ; do
-                      platform=${dir#"bins-"}
-                      unset exe
-                      if [[ $platform =~ "windows" ]]; then
-                          exe=".exe"
-                      fi
-                      pkgname=$PROJECT_NAME-$TAG-$platform
-                      mkdir tmp/$pkgname
-                      # cp LICENSE README.md tmp/$pkgname
-                      mv bins-$platform/$BIN_NAME$exe tmp/$pkgname
-                      chmod +x tmp/$pkgname/$BIN_NAME$exe
-
-                      if [ "$exe" = "" ]; then
-                          tar cJf dist/$pkgname.tar.xz -C tmp $pkgname
-                      else
-                          (cd tmp && 7z a -r ../dist/$pkgname.zip $pkgname)
-                      fi
-                  done
-
-            - name: Upload binaries to release
-              uses: svenstaro/upload-release-action@v2
+    upload-assets:
+        needs: create-release
+        strategy:
+            matrix:
+                include:
+                    - target: aarch64-unknown-linux-gnu
+                      os: ubuntu-latest
+                      tar_os: linux
+                      tar_arch: arm64
+                    - target: aarch64-apple-darwin
+                      os: macos-latest
+                      tar_os: darwin
+                      tar_arch: arm64
+                    - target: x86_64-unknown-linux-gnu
+                      os: ubuntu-latest
+                      tar_os: linux
+                      tar_arch: amd64
+                    - target: x86_64-apple-darwin
+                      os: macos-latest
+                      tar_os: darwin
+                      tar_arch: amd64
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Generate tag
+              id: tag
+              # Get the latest tag without the v prefix
+              run: echo "tag=$(git describe --tags --abbrev=0 | sed 's/v//')" >> $GITHUB_OUTPUT
+            - name: Rust Cache
+              uses: Swatinem/rust-cache@v2.7.3
+            - uses: taiki-e/upload-rust-binary-action@v1
               with:
-                  repo_token: ${{ secrets.GITHUB_TOKEN }}
-                  file: dist/*
-                  file_glob: true
-                  tag: ${{ steps.tagname.outputs.val }}
-                  overwrite: true
-
-            - name: Extract version
-              id: extract-version
-              run: |
-                  printf "::set-output name=%s::%s\n" tag-name "${GITHUB_REF#refs/tags/}"
-
-            - uses: mislav/bump-homebrew-formula-action@v1
+                  bin: ppr
+                  target: ${{ matrix.target }}
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  archive: $bin-${{ steps.tag.outputs.tag }}-${{ matrix.tar_os }}-${{ matrix.tar_arch }}
+    homebrew-releaser:
+        needs: upload-assets
+        runs-on: ubuntu-latest
+        name: homebrew-releaser
+        steps:
+            - name: Release my project to my Homebrew tap
+              uses: Justintime50/homebrew-releaser@v1
               with:
-                  formula-path: formula/${{env.PROJECT_NAME}}.rb
-                  homebrew-tap: ${{ env.BREW_TAP }}
-                  download-url: "https://github.com/${{ env.REPO_NAME }}/releases/download/${{ steps.extract-version.outputs.tag-name }}/${{env.PROJECT_NAME}}-${{ steps.extract-version.outputs.tag-name }}-x86_64-macos.tar.xz"
-                  commit-message: Bumping formula for ${{ env.PROJECT_NAME }}
-              env:
-                  COMMITTER_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-            # - name: Install ${{ matrix.rust }} toolchain
-            #   uses: actions-rs/toolchain@v1
-            #   with:
-            #       profile: minimal
-            #       toolchain: ${{ matrix.rust }}
-            #       target: ${{ matrix.target }}
-            # - run: cargo publish --token ${CRATES_TOKEN}
-            #   env:
-            #       CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
+                  homebrew_owner: cestef
+                  homebrew_tap: homebrew-tap
+                  formula_folder: formula
+                  github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+                  commit_owner: homebrew-releaser
+                  commit_email: homebrew-releaser@cstef.dev
+
+                  install: 'bin.install "ppr"'
+
+                  target_darwin_amd64: true
+                  target_darwin_arm64: true
+                  target_linux_amd64: true
+                  target_linux_arm64: true
+
+                  update_readme_table: true
+
+                  # Skips committing the generated formula to a homebrew tap (useful for local testing).
+                  skip_commit: false
+                  # Logs debugging info to console.
+                  debug: false
