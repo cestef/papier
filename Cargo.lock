@@ -566,7 +566,7 @@ checksum = "e7a26dc814881a4e2c998bfb232eedc731bd181fd6637cc5aa5e53c8acecd792"
 
 [[package]]
 name = "edtui-papier"
-version = "0.2.33"
+version = "0.2.34"
 dependencies = [
  "arboard",
  "crossterm",
@@ -1160,7 +1160,7 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
 name = "papier"
-version = "0.2.33"
+version = "0.2.34"
 dependencies = [
  "better-panic",
  "clap",
