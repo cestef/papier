@@ -210,13 +210,14 @@ where
             },
             KeyCode::Enter if mode == EditorMode::Command => {
                 let commands = self.command.available_commands.clone();
-                let command =
-                    commands.iter().find(|c| c.name == self.command.input || c.aliases.contains(&self.command.input));
+                let command = self.command.clone();
+                let (command, args) = command.input.split_once(' ').unwrap_or_default();
+                let command = commands.iter().find(|c| c.name == command || c.aliases.contains(&command.to_string()));
                 state.mode = EditorMode::Normal;
                 self.command.clear();
                 state.command = self.command.input.clone();
                 if let Some(command) = command {
-                    return Some(Custom((command.action)(self.command.input.clone())));
+                    return Some(Custom((command.action)(args.to_string())));
                 }
             },
 

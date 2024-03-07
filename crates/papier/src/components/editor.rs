@@ -108,7 +108,7 @@ impl Buffer {
                 vec!["N".to_string()],
                 |_| PapierAction::PreviousBuffer,
             ),
-            Command::new("open".to_string(), "Open a file".to_string(), vec!["e".to_string()], PapierAction::Open),
+            Command::new("open".to_string(), "Open a file".to_string(), vec!["o".to_string()], PapierAction::Open),
             Command::new("quit_all".to_string(), "Quit the app".to_string(), vec!["qa".to_string()], |_| {
                 PapierAction::QuitAll
             }),
@@ -267,6 +267,7 @@ impl Component for Editor {
                 },
                 PapierAction::Open(i) => {
                     let path = PathBuf::from(i);
+                    debug!("Opening file: {:?}", path);
                     let buffer = Buffer::new(Some(path), self.config.keybindings.clone(), None, None)?;
                     self.buffers.push(buffer);
                     self.current_buffer = Some(self.buffers.len() - 1);
