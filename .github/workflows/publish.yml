@@ -1,0 +1,28 @@
+on:
+    push:
+        tags:
+            - "v*.*.*"
+    workflow_dispatch:
+
+name: Publish
+
+jobs:
+    publish:
+        name: Publish
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout sources
+              uses: actions/checkout@v2
+            - name: Rust Cache
+              uses: Swatinem/rust-cache@v2.7.3
+            - name: Install stable toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  profile: minimal
+                  toolchain: stable
+            - run: cargo publish --token ${CRATES_TOKEN} -p edtui-papier
+              env:
+                  CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
+            - run: cargo publish --token ${CRATES_TOKEN} -p papier
+              env:
+                  CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
