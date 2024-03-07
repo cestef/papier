@@ -2,3 +2,5 @@
 .data/*.log
 debug.log
 /dist
+.DS_Store
+
