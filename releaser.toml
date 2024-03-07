@@ -19,5 +19,5 @@ owner = "cestef"
 repo = "papier"
 target_branch = "main"
 
-# [crates_io]
-# packages = ["edtui-papier", "papier"]
+[crates_io]
+packages = ["edtui-papier", "papier"]
