@@ -59,6 +59,10 @@ jobs:
         runs-on: ubuntu-latest
         name: homebrew-releaser
         steps:
+            - name: Generate tag
+              id: tag
+              # Get the latest tag without the v prefix
+              run: echo "tag=$(git describe --tags --abbrev=0 | sed 's/v//')" >> $GITHUB_OUTPUT
             - name: Release my project to my Homebrew tap
               uses: Justintime50/homebrew-releaser@v1
               with:
@@ -70,7 +74,7 @@ jobs:
                   commit_email: homebrew-releaser@cstef.dev
 
                   install: 'bin.install "ppr"'
-
+                  version: ${{ steps.tag.outputs.tag }}
                   target_darwin_amd64: true
                   target_darwin_arm64: true
                   target_linux_amd64: true
