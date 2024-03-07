@@ -81,4 +81,4 @@ jobs:
                   # Skips committing the generated formula to a homebrew tap (useful for local testing).
                   skip_commit: false
                   # Logs debugging info to console.
-                  debug: false
+                  debug: true
