@@ -90,10 +90,13 @@ impl Buffer {
             Command::new("save".to_string(), "Save the current file".to_string(), vec!["w".to_string()], |_| {
                 PapierAction::Save
             }),
+            Command::new("save_all".to_string(), "Save all open files".to_string(), vec!["wa".to_string()], |_| {
+                PapierAction::SaveAll
+            }),
             Command::new(
                 "save_as".to_string(),
                 "Save the current file as a new file".to_string(),
-                vec!["wq".to_string()],
+                vec!["W".to_string()],
                 PapierAction::SaveAs,
             ),
             Command::new(
@@ -244,14 +247,16 @@ impl Component for Editor {
                     debug!("Saving buffer");
                     current_buffer.save()?;
                 },
-                PapierAction::SaveAs(i) => {
-                    let args = i.split_whitespace().skip(1).collect::<Vec<&str>>();
-                    if args.len() != 1 {
-                        current_buffer.message = Some("Invalid arguments".to_string());
-                    } else {
-                        let path = PathBuf::from(args[0]);
-                        current_buffer.save_as(path)?;
+                PapierAction::SaveAll => {
+                    debug!("Saving all buffers");
+                    for buffer in self.buffers.iter_mut() {
+                        buffer.save()?;
                     }
+                },
+                PapierAction::SaveAs(i) => {
+                    let path = PathBuf::from(i);
+                    debug!("Saving buffer as: {:?}", path);
+                    current_buffer.save_as(path)?;
                 },
                 PapierAction::NextBuffer => {
                     let index = self.current_buffer.unwrap();

@@ -211,11 +211,11 @@ where
             KeyCode::Enter if mode == EditorMode::Command => {
                 let commands = self.command.available_commands.clone();
                 let command = self.command.clone();
-                let (command, args) = command.input.split_once(' ').unwrap_or_default();
+                let input = command.input.clone();
+                let (command, args) = input.split_once(' ').unwrap_or((&input, ""));
                 let command = commands.iter().find(|c| c.name == command || c.aliases.contains(&command.to_string()));
                 state.mode = EditorMode::Normal;
                 self.command.clear();
-                state.command = self.command.input.clone();
                 if let Some(command) = command {
                     return Some(Custom((command.action)(args.to_string())));
                 }

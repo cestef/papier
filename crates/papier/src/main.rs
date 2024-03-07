@@ -27,6 +27,7 @@ pub enum PapierAction {
     Quit,
     QuitAll,
     Save,
+    SaveAll,
     SaveAs(String),
     PreviousBuffer,
     NextBuffer,
