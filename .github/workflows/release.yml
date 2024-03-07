@@ -72,17 +72,14 @@ jobs:
                   github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
                   commit_owner: homebrew-releaser
                   commit_email: homebrew-releaser@cstef.dev
-
                   install: 'bin.install "ppr"'
                   version: ${{ steps.tag.outputs.tag }}
                   target_darwin_amd64: true
                   target_darwin_arm64: true
                   target_linux_amd64: true
                   target_linux_arm64: true
-
                   update_readme_table: true
-
                   # Skips committing the generated formula to a homebrew tap (useful for local testing).
                   skip_commit: false
                   # Logs debugging info to console.
-                  debug: true
+                  debug: false
