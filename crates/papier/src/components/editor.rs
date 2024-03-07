@@ -10,6 +10,7 @@ use edtui::{
     actions::Execute, state::command::Command, view::EditorMessage, EditorMode, EditorState, EditorTheme, EditorView,
     Index2, Input, Lines, StatusLine,
 };
+use log::debug;
 use ratatui::{prelude::*, style::palette::tailwind::PURPLE, widgets::*};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -39,6 +40,10 @@ impl Editor {
         let config = Config::default();
         let mut buffers = Vec::new();
         if !files.is_empty() {
+            if files.iter().any(|f| f.is_dir()) {
+                log::error!("Directories are not supported");
+                std::process::exit(1);
+            }
             for file in files {
                 let buffer = Buffer::new(Some(file.clone()), config.keybindings.clone(), None, None).unwrap();
                 buffers.push(buffer);
@@ -118,11 +123,19 @@ impl Buffer {
     ) -> io::Result<Self> {
         let state = match path {
             Some(ref path) => {
-                let file = fs::File::open(path)?;
-                let reader = io::BufReader::new(file);
-                let lines: &str = &reader.lines().map_while(Result::ok).collect::<Vec<String>>().join("\n");
-                log::debug!("Read file: {}", lines);
-                EditorState::new(Lines::from(lines), path.to_string_lossy().split('.').last().unwrap_or_default())
+                let lines = if !path.exists() {
+                    log::debug!("File does not exist: {}", path.to_string_lossy());
+                    "".to_string()
+                } else {
+                    let file = fs::File::open(path)?;
+                    let reader = io::BufReader::new(file);
+                    let lines = reader.lines();
+                    lines.map_while(Result::ok).collect::<Vec<String>>().join("\n")
+                };
+                EditorState::new(
+                    Lines::from(lines.as_str()),
+                    path.to_string_lossy().split('.').last().unwrap_or_default(),
+                )
             },
             None => EditorState::new(
                 Lines::from(
@@ -158,9 +171,6 @@ Don't hesitate to open issues or submit pull requests to contribute!
     }
 
     fn save(&mut self) -> io::Result<()> {
-        if !self.modified {
-            return Ok(());
-        }
         if let Some(path) = &self.path {
             let mut f = io::BufWriter::new(fs::File::create(path)?);
             for (maybe_char, Index2 { col, row }) in self.state.lines.iter() {
@@ -231,6 +241,7 @@ impl Component for Editor {
                     }
                 },
                 PapierAction::Save => {
+                    debug!("Saving buffer");
                     current_buffer.save()?;
                 },
                 PapierAction::SaveAs(i) => {
