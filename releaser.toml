@@ -1,8 +1,8 @@
 [build]
-# arch = ["amd64", "arm64"]
-# os = ["darwin", "linux"]
+arch = ["amd64", "arm64"]
+os = ["darwin", "linux"]
 binary = "ppr"
-tool = "cargo"
+tool = "cross"
 
 [brew]
 name = "papier"
