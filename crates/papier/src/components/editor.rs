@@ -5,13 +5,15 @@ use crate::{
     PapierAction,
 };
 use color_eyre::eyre::{eyre, Result};
-use crossterm::event::{KeyCode, KeyEvent};
+use config::File;
+use crossterm::event::{Event, KeyCode, KeyEvent};
 use edtui::{
     actions::Execute, state::command::Command, view::EditorMessage, EditorMode, EditorState, EditorTheme, EditorView,
     Index2, Input, Lines, StatusLine,
 };
 use log::debug;
 use ratatui::{prelude::*, style::palette::tailwind::PURPLE, widgets::*};
+use ratatui_explorer::{FileExplorer, Input as ExplorerInput, Theme as FileTheme};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -81,6 +83,12 @@ pub struct Buffer {
     state: EditorState,
     input: Input<PapierAction>,
     message: Option<String>,
+    explorer: FileExplorer,
+    explorer_state: FileExplorerState,
+}
+
+struct FileExplorerState {
+    open: bool,
 }
 
 impl Buffer {
@@ -170,6 +178,8 @@ Don't hesitate to open issues or submit pull requests to contribute!
             input,
             message: None,
             name: name.or_else(|| path.map(|p| p.file_name().unwrap().to_string_lossy().to_string())),
+            explorer: FileExplorer::with_theme(FileTheme::default().add_default_title())?,
+            explorer_state: FileExplorerState { open: false },
         })
     }
 
@@ -225,6 +235,26 @@ impl Component for Editor {
         let current_buffer = self.current_buffer().unwrap();
         let input = &mut current_buffer.input;
         let state = &mut current_buffer.state;
+        let explorer = &mut current_buffer.explorer;
+        let explorer_state = &mut current_buffer.explorer_state;
+
+        if explorer_state.open {
+            if key.code == KeyCode::Esc {
+                explorer_state.open = false;
+                return Ok(None);
+            }
+            explorer.handle(&Event::Key(key))?;
+
+            if !explorer.current().is_dir() && (key.code == KeyCode::Enter || key.code == KeyCode::Char('l')) {
+                let path = explorer.current().path().to_path_buf();
+                let buffer = Buffer::new(Some(path), self.config.keybindings.clone(), None, None)?;
+                self.buffers.push(buffer);
+                self.current_buffer = Some(self.buffers.len() - 1);
+                return Ok(None);
+            }
+            return Ok(None);
+        }
+
         let maybe_custom = input.on_key(key, state);
 
         if let Some(custom) = maybe_custom {
@@ -278,6 +308,9 @@ impl Component for Editor {
                     self.current_buffer = Some(self.buffers.len() - 1);
                 },
                 PapierAction::QuitAll => return Ok(Some(Action::Quit)),
+                PapierAction::ToggleExplorer => {
+                    current_buffer.explorer_state.open = !current_buffer.explorer_state.open;
+                },
             }
         };
 
@@ -285,12 +318,23 @@ impl Component for Editor {
     }
 
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
-        let [top, bottom] = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).areas(area);
-
         let buffer_index = self.current_buffer.unwrap();
         let buffer_count = self.buffers.len();
         let current_buffer = self.current_buffer().unwrap();
         let state = &mut current_buffer.state;
+
+        let area = area.inner(&Margin { horizontal: 1, vertical: 1 });
+        let [explorer, editor] = Layout::horizontal([
+            Constraint::Length(if current_buffer.explorer_state.open { 20 } else { 0 }),
+            Constraint::Min(0),
+        ])
+        .areas(area);
+        let [top, bottom] = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).areas(editor);
+
+        if current_buffer.explorer_state.open {
+            f.render_widget(&current_buffer.explorer.widget(), explorer);
+        }
+
         let theme = EditorTheme::default()
             .base(EditorTheme::default().base.bold().bg(Color::Reset))
             .selection_style(Style::default().bg(Color::LightMagenta).fg(Color::Reset))

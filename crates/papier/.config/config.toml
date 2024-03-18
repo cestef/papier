@@ -1,3 +1,4 @@
 [keybindings.normal]
 "ctrl-l" = { action = "Custom", payload = "NextBuffer" }
 "ctrl-h" = { action = "Custom", payload = "PreviousBuffer" }
+"ctrl-e" = { action = "Custom", payload = "ToggleExplorer" }

@@ -32,6 +32,7 @@ pub enum PapierAction {
     PreviousBuffer,
     NextBuffer,
     Open(String),
+    ToggleExplorer,
 }
 
 impl Execute for PapierAction {
