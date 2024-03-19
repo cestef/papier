@@ -11,7 +11,7 @@ use edtui::{
     actions::Execute, state::command::Command, view::EditorMessage, EditorMode, EditorState, EditorTheme, EditorView,
     Index2, Input, Lines, StatusLine,
 };
-use log::debug;
+use log::{debug, trace};
 use ratatui::{prelude::*, style::palette::tailwind::PURPLE, widgets::*};
 use ratatui_explorer::{FileExplorer, Input as ExplorerInput, Theme as FileTheme};
 use serde::{Deserialize, Serialize};
@@ -24,6 +24,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::mpsc::UnboundedSender;
+use tui_logger::{TuiLoggerLevelOutput, TuiLoggerSmartWidget, TuiWidgetEvent, TuiWidgetState};
 
 pub struct Theme<'a> {
     pub editor: EditorTheme<'a>,
@@ -85,10 +86,16 @@ pub struct Buffer {
     message: Option<String>,
     explorer: FileExplorer,
     explorer_state: FileExplorerState,
+    logger: LoggerState,
 }
 
 struct FileExplorerState {
     open: bool,
+}
+
+struct LoggerState {
+    open: bool,
+    state: TuiWidgetState,
 }
 
 impl Buffer {
@@ -180,6 +187,7 @@ Don't hesitate to open issues or submit pull requests to contribute!
             name: name.or_else(|| path.map(|p| p.file_name().unwrap().to_string_lossy().to_string())),
             explorer: FileExplorer::with_theme(FileTheme::default().add_default_title())?,
             explorer_state: FileExplorerState { open: false },
+            logger: LoggerState { open: false, state: TuiWidgetState::default() },
         })
     }
 
@@ -232,13 +240,35 @@ impl Component for Editor {
     }
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+        trace!(target: "key_events", "Handling key event: {:?}", key);
         let current_buffer = self.current_buffer().unwrap();
         let input = &mut current_buffer.input;
         let state = &mut current_buffer.state;
         let explorer = &mut current_buffer.explorer;
         let explorer_state = &mut current_buffer.explorer_state;
+        let logger = &mut current_buffer.logger;
 
-        if explorer_state.open {
+        if logger.open {
+            trace!(target: "key_events", "Logger is open");
+            match key.code {
+                KeyCode::Char('q') => logger.open = false,
+                KeyCode::Char(' ') => logger.state.transition(TuiWidgetEvent::SpaceKey),
+                KeyCode::Esc => logger.state.transition(TuiWidgetEvent::EscapeKey),
+                KeyCode::PageUp => logger.state.transition(TuiWidgetEvent::PrevPageKey),
+                KeyCode::PageDown => logger.state.transition(TuiWidgetEvent::NextPageKey),
+                KeyCode::Up => logger.state.transition(TuiWidgetEvent::UpKey),
+                KeyCode::Down => logger.state.transition(TuiWidgetEvent::DownKey),
+                KeyCode::Left => logger.state.transition(TuiWidgetEvent::LeftKey),
+                KeyCode::Right => logger.state.transition(TuiWidgetEvent::RightKey),
+                KeyCode::Char('+') => logger.state.transition(TuiWidgetEvent::PlusKey),
+                KeyCode::Char('-') => logger.state.transition(TuiWidgetEvent::MinusKey),
+                KeyCode::Char('h') => logger.state.transition(TuiWidgetEvent::HideKey),
+                KeyCode::Char('f') => logger.state.transition(TuiWidgetEvent::FocusKey),
+                _ => (),
+            }
+            return Ok(None);
+        } else if explorer_state.open {
+            trace!(target: "key_events", "Explorer is open");
             if key.code == KeyCode::Esc {
                 explorer_state.open = false;
                 return Ok(None);
@@ -246,6 +276,7 @@ impl Component for Editor {
             explorer.handle(&Event::Key(key))?;
 
             if !explorer.current().is_dir() && (key.code == KeyCode::Enter || key.code == KeyCode::Char('l')) {
+                explorer_state.open = false;
                 let path = explorer.current().path().to_path_buf();
                 let buffer = Buffer::new(Some(path), self.config.keybindings.clone(), None, None)?;
                 self.buffers.push(buffer);
@@ -262,6 +293,7 @@ impl Component for Editor {
                 PapierAction::Quit => {
                     // If there is still a buffer open, close it, else quit the app
                     if self.buffers.len() > 1 {
+                        debug!(target: "key_events", "Quitting buffer");
                         let index = self.current_buffer.unwrap();
                         self.buffers.remove(index);
                         // check if the previous buffer exists
@@ -270,22 +302,23 @@ impl Component for Editor {
                             self.current_buffer().unwrap().state.reset_highlighter();
                         }
                     } else {
+                        debug!(target: "key_events", "Quitting app from PapierAction::Quit");
                         return Ok(Some(Action::Quit));
                     }
                 },
                 PapierAction::Save => {
-                    debug!("Saving buffer");
+                    debug!(target: "key_events", "Saving buffer");
                     current_buffer.save()?;
                 },
                 PapierAction::SaveAll => {
-                    debug!("Saving all buffers");
+                    debug!(target: "key_events", "Saving all buffers ({} buffers)", self.buffers.len());
                     for buffer in self.buffers.iter_mut() {
                         buffer.save()?;
                     }
                 },
                 PapierAction::SaveAs(i) => {
                     let path = PathBuf::from(i);
-                    debug!("Saving buffer as: {:?}", path);
+                    debug!(target: "key_events", "Saving buffer as: {:?}", path);
                     current_buffer.save_as(path)?;
                 },
                 PapierAction::NextBuffer => {
@@ -302,14 +335,21 @@ impl Component for Editor {
                 },
                 PapierAction::Open(i) => {
                     let path = PathBuf::from(i);
-                    debug!("Opening file: {:?}", path);
+                    debug!(target: "key_events", "Opening file: {:?}", path);
                     let buffer = Buffer::new(Some(path), self.config.keybindings.clone(), None, None)?;
                     self.buffers.push(buffer);
                     self.current_buffer = Some(self.buffers.len() - 1);
                 },
-                PapierAction::QuitAll => return Ok(Some(Action::Quit)),
+                PapierAction::QuitAll => {
+                    debug!(target: "key_events", "Quitting app from PapierAction::QuitAll");
+                    return Ok(Some(Action::Quit));
+                },
                 PapierAction::ToggleExplorer => {
+                    debug!(target: "key_events", "Toggling explorer: {}", explorer_state.open);
                     current_buffer.explorer_state.open = !current_buffer.explorer_state.open;
+                },
+                PapierAction::ToggleLogger => {
+                    current_buffer.logger.open = !current_buffer.logger.open;
                 },
             }
         };
@@ -323,7 +363,7 @@ impl Component for Editor {
         let current_buffer = self.current_buffer().unwrap();
         let state = &mut current_buffer.state;
 
-        let area = area.inner(&Margin { horizontal: 1, vertical: 1 });
+        // let area = area.inner(&Margin { horizontal: 1, vertical: 1 });
         let [explorer, editor] = Layout::horizontal([
             Constraint::Length(if current_buffer.explorer_state.open { 20 } else { 0 }),
             Constraint::Min(0),
@@ -333,6 +373,25 @@ impl Component for Editor {
 
         if current_buffer.explorer_state.open {
             f.render_widget(&current_buffer.explorer.widget(), explorer);
+        }
+
+        if current_buffer.logger.open {
+            let logger = TuiLoggerSmartWidget::default()
+                .style_error(Style::default().fg(Color::Red))
+                .style_debug(Style::default().fg(Color::Green))
+                .style_warn(Style::default().fg(Color::Yellow))
+                .style_trace(Style::default().fg(Color::Magenta))
+                .style_info(Style::default().fg(Color::Cyan))
+                .output_separator(':')
+                .output_timestamp(Some("%H:%M:%S".to_string()))
+                .output_level(Some(TuiLoggerLevelOutput::Abbreviated))
+                .output_target(true)
+                .output_file(true)
+                .output_line(true)
+                .state(&current_buffer.logger.state);
+            logger.render(editor, f.buffer_mut());
+
+            return Ok(());
         }
 
         let theme = EditorTheme::default()

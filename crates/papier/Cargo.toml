@@ -49,3 +49,4 @@ tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "serde"] }
 ratatui-explorer = "0.1.1"
 tui-term = "0.1.8"
+tui-logger = { version = "0.11.0", features = ["tracing-support", "crossterm"] }

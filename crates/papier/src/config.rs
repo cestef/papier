@@ -107,6 +107,8 @@ impl<'de> Deserialize<'de> for KeyBindings {
             })
             .collect();
 
+        log::debug!("Keybindings: {:#?}", keybindings);
+
         Ok(KeyBindings(keybindings))
     }
 }
