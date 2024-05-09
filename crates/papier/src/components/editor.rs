@@ -1,9 +1,12 @@
-use super::{Component, Frame};
-use crate::{
-    action::Action,
-    config::{Config, KeyBindings},
-    PapierAction,
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Display},
+    fs,
+    io::{self, BufRead, Write},
+    path::PathBuf,
+    time::Duration,
 };
+
 use color_eyre::eyre::{eyre, Result};
 use config::File;
 use crossterm::event::{Event, KeyCode, KeyEvent};
@@ -15,16 +18,15 @@ use log::{debug, trace};
 use ratatui::{prelude::*, style::palette::tailwind::PURPLE, widgets::*};
 use ratatui_explorer::{FileExplorer, Input as ExplorerInput, Theme as FileTheme};
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    fmt::{Debug, Display},
-    fs,
-    io::{self, BufRead, Write},
-    path::PathBuf,
-    time::Duration,
-};
 use tokio::sync::mpsc::UnboundedSender;
 use tui_logger::{TuiLoggerLevelOutput, TuiLoggerSmartWidget, TuiWidgetEvent, TuiWidgetState};
+
+use super::{Component, Frame};
+use crate::{
+    action::Action,
+    config::{Config, KeyBindings},
+    PapierAction,
+};
 
 pub struct Theme<'a> {
     pub editor: EditorTheme<'a>,
@@ -155,9 +157,10 @@ impl Buffer {
                     path.to_string_lossy().split('.').last().unwrap_or_default(),
                 )
             },
-            None => EditorState::new(
-                Lines::from(
-                    "papier is a light-weight vim inspired TUI editor using the RataTUI ecosystem.
+            None => {
+                EditorState::new(
+                    Lines::from(
+                        "papier is a light-weight vim inspired TUI editor using the RataTUI ecosystem.
 
 Navigate right (l), left (h), up (k) and down (j), using vim motions.
     
@@ -172,9 +175,10 @@ Built-in search using the '/' command.
 This editor is under active development.
 Don't hesitate to open issues or submit pull requests to contribute!
 ",
-                ),
-                "txt",
-            ),
+                    ),
+                    "txt",
+                )
+            },
         };
         let mut input: Input<_> = keybindings.into();
         Self::init_commands(&mut input);
@@ -233,7 +237,7 @@ impl Component for Editor {
         self.config = config;
         self.buffers.iter_mut().for_each(|b| {
             let mut input: Input<_> = self.config.keybindings.clone().into();
-            input.command.available_commands = b.input.command.available_commands.clone();
+            input.command.available_commands.clone_from(&b.input.command.available_commands);
             b.input = input;
         });
         Ok(())

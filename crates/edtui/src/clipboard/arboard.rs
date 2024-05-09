@@ -1,7 +1,7 @@
-#![cfg(feature = "arboard")]
+use std::error::Error;
+
 use super::{Clipboard, ClipboardTrait};
 use crate::clipboard::InternalClipboard;
-use std::error::Error;
 
 pub struct ArboardClipboard {
     inner: arboard::Clipboard,

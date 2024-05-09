@@ -177,13 +177,10 @@ where
         T: Into<KeyEvent> + Copy,
     {
         let mode = state.mode;
-        /*
-
-        r.insert(RegisterKey::n(vec![Key::Char(':')]), StartCommand);
-        r.insert(RegisterKey::c(vec![Key::Esc]), StopCommand);
-        r.insert(RegisterKey::c(vec![Key::Enter]), TriggerCommand);
-        r.insert(RegisterKey::c(vec![Key::Backspace]), RemoveCharFromCommand);
-         */
+        // r.insert(RegisterKey::n(vec![Key::Char(':')]), StartCommand);
+        // r.insert(RegisterKey::c(vec![Key::Esc]), StopCommand);
+        // r.insert(RegisterKey::c(vec![Key::Enter]), TriggerCommand);
+        // r.insert(RegisterKey::c(vec![Key::Backspace]), RemoveCharFromCommand);
         match key.into().code {
             // Always insert characters in insert mode
             KeyCode::Char(c) if mode == EditorMode::Insert => InsertChar(c).execute(state),
@@ -192,20 +189,20 @@ where
 
             KeyCode::Char(':') if mode == EditorMode::Normal => {
                 self.command.clear();
-                state.command = self.command.input.clone();
+                state.command.clone_from(&self.command.input);
                 state.mode = EditorMode::Command;
             },
             KeyCode::Char(c) if mode == EditorMode::Command => {
                 self.command.push_char(c);
-                state.command = self.command.input.clone();
+                state.command.clone_from(&self.command.input);
             },
             KeyCode::Backspace if mode == EditorMode::Command => {
                 self.command.remove_char();
-                state.command = self.command.input.clone();
+                state.command.clone_from(&self.command.input);
             },
             KeyCode::Esc if mode == EditorMode::Command => {
                 self.command.clear();
-                state.command = self.command.input.clone();
+                state.command.clone_from(&self.command.input);
                 state.mode = EditorMode::Normal;
             },
             KeyCode::Enter if mode == EditorMode::Command => {
