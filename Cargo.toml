@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/papier", "crates/edtui"]
 
 [workspace.package]
-version = "0.2.38"
+version = "0.2.39"
 authors = ["cstef <root@cstef.dev>"]
 readme = "README.md"
 license = "MIT"
